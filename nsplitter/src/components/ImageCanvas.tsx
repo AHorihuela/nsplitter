@@ -6,11 +6,18 @@ interface ImageCanvasProps {
   onLoad?: (dimensions: ImageDimensions) => void;
 }
 
+interface DragState {
+  type: 'horizontal' | 'vertical';
+  index: number;
+  initialPosition: number;
+}
+
 const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [hoverLine, setHoverLine] = useState<Point | null>(null);
+  const [dragState, setDragState] = useState<DragState | null>(null);
   const [sliceLines, setSliceLines] = useState<SliceLines>({
     horizontal: [],
     vertical: []
@@ -34,6 +41,28 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     return { upperBound, lowerBound };
   };
 
+  // Find the nearest line to a point
+  const findNearestLine = (point: Point, threshold: number = 10): { type: 'horizontal' | 'vertical', index: number } | null => {
+    // Check horizontal lines
+    for (let i = 0; i < sliceLines.horizontal.length; i++) {
+      if (Math.abs(sliceLines.horizontal[i] - point.y) <= threshold) {
+        return { type: 'horizontal', index: i };
+      }
+    }
+
+    // Check vertical lines
+    for (let i = 0; i < sliceLines.vertical.length; i++) {
+      const line = sliceLines.vertical[i];
+      if (Math.abs(line.x - point.x) <= threshold && 
+          point.y >= line.upperBound - threshold && 
+          point.y <= line.lowerBound + threshold) {
+        return { type: 'vertical', index: i };
+      }
+    }
+
+    return null;
+  };
+
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,7 +82,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     };
   }, []);
 
-  // Handle mouse movement for hover guide
+  // Handle mouse movement for hover guide or drag
   const handleMouseMove = (e: MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || !canvasDimensions) return;
 
@@ -61,12 +90,64 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    setHoverLine({ x, y });
+    if (dragState) {
+      e.preventDefault();
+      setSliceLines(prev => {
+        if (dragState.type === 'horizontal') {
+          const newHorizontal = [...prev.horizontal];
+          newHorizontal[dragState.index] = Math.max(0, Math.min(y, canvasDimensions.height));
+          return {
+            ...prev,
+            horizontal: newHorizontal.sort((a, b) => a - b)
+          };
+        } else {
+          const newVertical = [...prev.vertical];
+          const line = newVertical[dragState.index];
+          newVertical[dragState.index] = {
+            ...line,
+            x: Math.max(0, Math.min(x, canvasDimensions.width))
+          };
+          return {
+            ...prev,
+            vertical: newVertical.sort((a, b) => a.x - b.x)
+          };
+        }
+      });
+    } else {
+      setHoverLine({ x, y });
+    }
+  };
+
+  // Handle mouse down for drag start
+  const handleMouseDown = (e: MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const point = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+
+    const nearestLine = findNearestLine(point);
+    if (nearestLine) {
+      e.preventDefault();
+      setDragState({
+        ...nearestLine,
+        initialPosition: nearestLine.type === 'horizontal' 
+          ? sliceLines.horizontal[nearestLine.index]
+          : sliceLines.vertical[nearestLine.index].x
+      });
+    }
+  };
+
+  // Handle mouse up for drag end
+  const handleMouseUp = () => {
+    setDragState(null);
   };
 
   // Handle click to add slice line
   const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || !canvasDimensions) return;
+    if (!canvasRef.current || !canvasDimensions || dragState) return;
 
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -218,11 +299,16 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
       <div className="absolute inset-0 flex items-center justify-center p-6">
         <canvas
           ref={canvasRef}
-          className="max-w-full max-h-full rounded-lg shadow-lg cursor-crosshair"
+          className={`max-w-full max-h-full rounded-lg shadow-lg ${dragState ? 'cursor-move' : 'cursor-crosshair'}`}
           onMouseMove={handleMouseMove}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => {
+            setHoverLine(null);
+            setDragState(null);
+          }}
           onClick={handleCanvasClick}
           onDoubleClick={handleDoubleClick}
-          onMouseLeave={() => setHoverLine(null)}
         />
       </div>
     </div>
