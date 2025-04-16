@@ -24,6 +24,24 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
   });
   const [canvasDimensions, setCanvasDimensions] = useState<ImageDimensions | null>(null);
 
+  // Get mouse coordinates relative to canvas
+  const getCanvasCoordinates = (e: MouseEvent<HTMLCanvasElement>): Point | null => {
+    if (!canvasRef.current || !canvasDimensions) return null;
+
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calculate the scale factors
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Get position relative to canvas element
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    return { x, y };
+  };
+
   // Find the containing horizontal boundaries for a given y-coordinate
   const findContainingBoundaries = (y: number, height: number) => {
     const allBoundaries = [0, ...sliceLines.horizontal, height].sort((a, b) => a - b);
@@ -43,9 +61,15 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
   // Find the nearest line to a point
   const findNearestLine = (point: Point, threshold: number = 10): { type: 'horizontal' | 'vertical', index: number } | null => {
+    // Convert threshold to canvas scale
+    if (!canvasRef.current) return null;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scaleX = canvasRef.current.width / rect.width;
+    const scaledThreshold = threshold * scaleX;
+
     // Check horizontal lines
     for (let i = 0; i < sliceLines.horizontal.length; i++) {
-      if (Math.abs(sliceLines.horizontal[i] - point.y) <= threshold) {
+      if (Math.abs(sliceLines.horizontal[i] - point.y) <= scaledThreshold) {
         return { type: 'horizontal', index: i };
       }
     }
@@ -53,9 +77,9 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     // Check vertical lines
     for (let i = 0; i < sliceLines.vertical.length; i++) {
       const line = sliceLines.vertical[i];
-      if (Math.abs(line.x - point.x) <= threshold && 
-          point.y >= line.upperBound - threshold && 
-          point.y <= line.lowerBound + threshold) {
+      if (Math.abs(line.x - point.x) <= scaledThreshold && 
+          point.y >= line.upperBound - scaledThreshold && 
+          point.y <= line.lowerBound + scaledThreshold) {
         return { type: 'vertical', index: i };
       }
     }
@@ -84,18 +108,15 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
   // Handle mouse movement for hover guide or drag
   const handleMouseMove = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || !canvasDimensions) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const point = getCanvasCoordinates(e);
+    if (!point || !canvasDimensions) return;
 
     if (dragState) {
       e.preventDefault();
       setSliceLines(prev => {
         if (dragState.type === 'horizontal') {
           const newHorizontal = [...prev.horizontal];
-          newHorizontal[dragState.index] = Math.max(0, Math.min(y, canvasDimensions.height));
+          newHorizontal[dragState.index] = Math.max(0, Math.min(point.y, canvasDimensions.height));
           return {
             ...prev,
             horizontal: newHorizontal.sort((a, b) => a - b)
@@ -105,7 +126,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
           const line = newVertical[dragState.index];
           newVertical[dragState.index] = {
             ...line,
-            x: Math.max(0, Math.min(x, canvasDimensions.width))
+            x: Math.max(0, Math.min(point.x, canvasDimensions.width))
           };
           return {
             ...prev,
@@ -114,19 +135,14 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
         }
       });
     } else {
-      setHoverLine({ x, y });
+      setHoverLine(point);
     }
   };
 
   // Handle mouse down for drag start
   const handleMouseDown = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const point = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
 
     const nearestLine = findNearestLine(point);
     if (nearestLine) {
@@ -147,17 +163,16 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
   // Handle click to add slice line
   const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || !canvasDimensions || dragState) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    if (dragState) return;
+    
+    const point = getCanvasCoordinates(e);
+    if (!point || !canvasDimensions) return;
 
     setSliceLines(prev => {
       if (isShiftPressed) {
-        const { upperBound, lowerBound } = findContainingBoundaries(y, canvasDimensions.height);
+        const { upperBound, lowerBound } = findContainingBoundaries(point.y, canvasDimensions.height);
         const newVerticalLine: VerticalLine = {
-          x,
+          x: point.x,
           upperBound,
           lowerBound
         };
@@ -173,7 +188,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
       } else {
         return {
           ...prev,
-          horizontal: [...prev.horizontal, y].sort((a, b) => a - b)
+          horizontal: [...prev.horizontal, point.y].sort((a, b) => a - b)
         };
       }
     });
@@ -181,18 +196,19 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
   // Handle double click to remove lines
   const handleDoubleClick = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || !canvasDimensions) return;
+    const point = getCanvasCoordinates(e);
+    if (!point || !canvasDimensions) return;
 
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
     const threshold = 10; // pixels
+    const rect = canvasRef.current!.getBoundingClientRect();
+    const scaleX = canvasRef.current!.width / rect.width;
+    const scaledThreshold = threshold * scaleX;
 
     setSliceLines(prev => ({
-      horizontal: prev.horizontal.filter(h => Math.abs(h - y) > threshold),
+      horizontal: prev.horizontal.filter(h => Math.abs(h - point.y) > scaledThreshold),
       vertical: prev.vertical.filter(v => {
-        const isWithinXThreshold = Math.abs(v.x - x) > threshold;
-        const isWithinYRange = y >= v.upperBound - threshold && y <= v.lowerBound + threshold;
+        const isWithinXThreshold = Math.abs(v.x - point.x) > scaledThreshold;
+        const isWithinYRange = point.y >= v.upperBound - scaledThreshold && point.y <= v.lowerBound + scaledThreshold;
         return !(isWithinXThreshold === false && isWithinYRange);
       })
     }));

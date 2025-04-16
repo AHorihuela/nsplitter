@@ -24,13 +24,13 @@
 - [x] Enable double-click to remove lines
 - [x] Store line coordinates in state
 - [x] Implement basic rendering of slice lines
-- [ ] Add dragging functionality to existing lines
+- [x] Add dragging functionality to existing lines
 
 ## Phase 4: Line Manipulation
-- [ ] Add drag functionality to existing lines
-- [ ] Implement line position constraints
-- [ ] Add visual feedback during drag operations
-- [ ] Ensure proper line ordering after drag
+- [x] Add drag functionality to existing lines
+- [x] Implement line position constraints
+- [x] Add visual feedback during drag operations
+- [x] Ensure proper line ordering after drag
 - [ ] Add line position persistence in session storage
 
 ## Phase 5: Image Processing and Export
