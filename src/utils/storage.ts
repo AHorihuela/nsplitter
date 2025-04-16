@@ -49,16 +49,25 @@ export const getCurrentImageHash = (): string | null => {
 // Save lines associated with a specific image
 export const saveLinesToStorage = (lines: SliceLines, imageHash: string): void => {
   try {
-    // Get existing image-lines mappings or initialize a new one
-    const storedData = localStorage.getItem(IMAGE_LINES_STORAGE_KEY);
-    const imageLines = storedData ? JSON.parse(storedData) : {};
+    if (!imageHash) {
+      console.error('Cannot save lines - no imageHash provided');
+      return;
+    }
     
-    // Update or add the lines for this specific image
-    imageLines[imageHash] = lines;
+    // Store lines directly with the image hash as key
+    // Format: nsplitter_image_lines_{imageHash}
+    const storageKey = `${IMAGE_LINES_STORAGE_KEY}_${imageHash}`;
     
-    // Save the updated mappings
-    localStorage.setItem(IMAGE_LINES_STORAGE_KEY, JSON.stringify(imageLines));
-    console.log(`Saved lines for image ${imageHash}:`, lines);
+    // Save lines directly to localStorage with this key
+    localStorage.setItem(storageKey, JSON.stringify(lines));
+    
+    // Also keep a record of all images that have lines
+    // This helps with managing and cleaning up storage
+    const storedImages = localStorage.getItem(IMAGE_LINES_STORAGE_KEY) || '{}';
+    const imagesWithLines = JSON.parse(storedImages);
+    imagesWithLines[imageHash] = true;
+    localStorage.setItem(IMAGE_LINES_STORAGE_KEY, JSON.stringify(imagesWithLines));
+    
   } catch (error) {
     console.error('Failed to save lines to local storage:', error);
   }
@@ -67,23 +76,20 @@ export const saveLinesToStorage = (lines: SliceLines, imageHash: string): void =
 // Get lines associated with a specific image
 export const getLinesFromStorage = (imageHash: string): SliceLines | null => {
   try {
-    const storedData = localStorage.getItem(IMAGE_LINES_STORAGE_KEY);
+    if (!imageHash) {
+      console.error('Cannot get lines - no imageHash provided');
+      return null;
+    }
+    
+    // Get lines directly from the image-specific storage key
+    const storageKey = `${IMAGE_LINES_STORAGE_KEY}_${imageHash}`;
+    const storedData = localStorage.getItem(storageKey);
+    
     if (!storedData) {
-      console.log('No stored line data found in localStorage');
       return null;
     }
     
-    const imageLines = JSON.parse(storedData);
-    console.log('All stored image lines:', imageLines);
-    
-    const lines = imageLines[imageHash];
-    
-    if (!lines) {
-      console.log(`No lines found for image hash: ${imageHash}`);
-      return null;
-    }
-    
-    console.log(`Retrieved lines for image ${imageHash}:`, lines);
+    const lines = JSON.parse(storedData);
     
     // Validate the structure of the retrieved lines
     if (typeof lines === 'object' && 
@@ -97,7 +103,6 @@ export const getLinesFromStorage = (imageHash: string): SliceLines | null => {
         )) {
       return lines as SliceLines;
     }
-    console.log(`Invalid line structure for image ${imageHash}`);
     return null;
   } catch (error) {
     console.error('Failed to get lines from local storage:', error);
@@ -164,6 +169,17 @@ export const getImageFromStorage = async (): Promise<{file: File, hash: string} 
 
 export const clearStorage = (): void => {
   try {
+    // Get list of images with lines
+    const storedImages = localStorage.getItem(IMAGE_LINES_STORAGE_KEY);
+    if (storedImages) {
+      // Clear image-specific line storage for each image
+      const imagesWithLines = JSON.parse(storedImages);
+      Object.keys(imagesWithLines).forEach(imageHash => {
+        localStorage.removeItem(`${IMAGE_LINES_STORAGE_KEY}_${imageHash}`);
+      });
+    }
+    
+    // Clear all remaining storage keys
     localStorage.removeItem(IMAGE_LINES_STORAGE_KEY);
     localStorage.removeItem(CURRENT_IMAGE_KEY);
     localStorage.removeItem(IMAGE_STORAGE_KEY);

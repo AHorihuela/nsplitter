@@ -4,17 +4,21 @@ import { findContainingBoundaries, updateSliceLinesOnHorizontalDrag, updateSlice
 import { HistoryState, createInitialHistory, addToHistory, undo, redo } from '../utils/history';
 import { saveLinesToStorage, getLinesFromStorage, getCurrentImageHash } from '../utils/storage';
 
+// Import storage constants directly
+const IMAGE_LINES_STORAGE_KEY = 'nsplitter_image_lines';
+
 interface DragState {
   type: 'horizontal' | 'vertical';
   index: number;
   initialPosition: number;
 }
 
-interface NearestLine {
+// Type definition for a line with position and distance
+type LineWithDistance = {
   type: 'horizontal' | 'vertical';
   index: number;
   distance: number;
-}
+};
 
 interface UseLineManagementResult {
   history: HistoryState;
@@ -36,7 +40,6 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
     if (currentHash) {
       const storedLines = getLinesFromStorage(currentHash);
       if (storedLines) {
-        console.log('Loaded lines for image hash:', currentHash, storedLines);
         return createInitialHistory(storedLines);
       }
     }
@@ -53,15 +56,12 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
 
   // Update the current image hash
   const updateImageHash = useCallback((hash: string) => {
-    console.log('Updating image hash to:', hash);
     setImageHash(hash);
     // Load lines for this image if they exist
     const storedLines = getLinesFromStorage(hash);
     if (storedLines) {
-      console.log('Found stored lines for hash:', hash, storedLines);
       setHistory(createInitialHistory(storedLines));
     } else {
-      console.log('No stored lines found for hash:', hash);
       // If no lines exist for this image, reset to empty
       setHistory(createInitialHistory({ horizontal: [], vertical: [] }));
     }
@@ -69,7 +69,7 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
 
   const findNearestLine = useCallback((point: Point, threshold: number = 10, scale: number): { type: 'horizontal' | 'vertical', index: number } | null => {
     const scaledThreshold = threshold / scale;
-    let nearestLine: NearestLine | null = null;
+    let nearestLine: LineWithDistance | null = null;
 
     // Check horizontal lines
     history.present.horizontal.forEach((y, index) => {
@@ -90,11 +90,16 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
       }
     });
 
-    // Type safety assertion
-    return nearestLine ? { 
-      type: nearestLine.type as 'horizontal' | 'vertical', 
-      index: nearestLine.index 
-    } : null;
+    // Return result without the distance property
+    if (!nearestLine) return null;
+    
+    // Create a new object with only the needed properties
+    const result: { type: 'horizontal' | 'vertical', index: number } = {
+      type: nearestLine.type === 'horizontal' ? 'horizontal' : 'vertical',
+      index: nearestLine.index
+    };
+    
+    return result;
   }, [history.present]);
 
   const handleDragStart = useCallback((point: Point, nearestLine: { type: 'horizontal' | 'vertical', index: number }) => {
@@ -226,13 +231,10 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
   // Save lines to storage whenever they change
   useEffect(() => {
     if (imageHash) {
-      console.log('Saving lines to storage for hash:', imageHash, history.present);
       saveLinesToStorage(history.present, imageHash);
     } else {
       const currentHash = getCurrentImageHash();
       if (currentHash) {
-        console.log('No imageHash in state, but found current hash in storage:', currentHash);
-        console.log('Saving lines to storage for current hash:', currentHash, history.present);
         saveLinesToStorage(history.present, currentHash);
         if (!imageHashRef.current) {
           setImageHash(currentHash);
@@ -240,6 +242,18 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
       }
     }
   }, [history.present, imageHash]);
+
+  // Ensure lines are loaded on mount
+  useEffect(() => {
+    const hash = getCurrentImageHash();
+    if (hash) {
+      const lines = getLinesFromStorage(hash);
+      if (lines) {
+        setHistory(createInitialHistory(lines));
+        setImageHash(hash);
+      }
+    }
+  }, []);
 
   return {
     history,

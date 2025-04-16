@@ -9,14 +9,14 @@ interface UndoRedoProps {
 
 const UndoRedo: React.FC<UndoRedoProps> = ({ canUndo, canRedo, onUndo, onRedo }) => {
   return (
-    <div className="flex gap-2">
+    <div className="flex border border-gray-200 rounded-md overflow-hidden">
       <button
         onClick={onUndo}
         disabled={!canUndo}
-        className={`p-2 rounded-lg transition-colors ${
+        className={`p-2 transition-colors ${
           canUndo
-            ? 'text-gray-700 hover:bg-gray-100'
-            : 'text-gray-400 cursor-not-allowed'
+            ? 'text-gray-700 hover:bg-gray-100 bg-white'
+            : 'text-gray-400 bg-gray-50 cursor-not-allowed'
         }`}
         title="Undo"
       >
@@ -35,13 +35,14 @@ const UndoRedo: React.FC<UndoRedoProps> = ({ canUndo, canRedo, onUndo, onRedo })
           />
         </svg>
       </button>
+      <div className="border-r border-gray-200"></div>
       <button
         onClick={onRedo}
         disabled={!canRedo}
-        className={`p-2 rounded-lg transition-colors ${
+        className={`p-2 transition-colors ${
           canRedo
-            ? 'text-gray-700 hover:bg-gray-100'
-            : 'text-gray-400 cursor-not-allowed'
+            ? 'text-gray-700 hover:bg-gray-100 bg-white'
+            : 'text-gray-400 bg-gray-50 cursor-not-allowed'
         }`}
         title="Redo"
       >
