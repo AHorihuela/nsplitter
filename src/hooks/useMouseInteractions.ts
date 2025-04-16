@@ -88,6 +88,8 @@ export function useMouseInteractions({
     const point = getCanvasCoordinates(e);
     if (!point) return;
 
+    setDragStartPoint(point);
+
     if (hoveredLine) {
       setIsDragging(true);
       onDragStart(hoveredLine.type, hoveredLine.index);
@@ -95,33 +97,29 @@ export function useMouseInteractions({
   }, [hoveredLine, onDragStart]);
 
   const handleMouseUp = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
-    if (!dragStartPoint) return;
-
     const point = getCanvasCoordinates(e);
-    if (!point) return;
+    if (!point || !dragStartPoint) return;
 
     const dx = Math.abs(point.x - dragStartPoint.x);
     const dy = Math.abs(point.y - dragStartPoint.y);
 
-    if (!isDragging && dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+    if (isDragging) {
+      onDragEnd();
+      setIsDragging(false);
+    } else if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
       onLineAdd(point, isShiftPressed);
     }
 
-    if (isDragging) {
-      onDragEnd();
-    }
-
-    setIsDragging(false);
     setDragStartPoint(null);
   }, [dragStartPoint, isDragging, isShiftPressed, onLineAdd, onDragEnd]);
 
   const handleClick = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
+    if (isDragging) return;
+
     const point = getCanvasCoordinates(e);
     if (!point) return;
 
-    if (!isDragging) {
-      onLineAdd(point, isShiftPressed);
-    }
+    onLineAdd(point, isShiftPressed);
   }, [isDragging, isShiftPressed, onLineAdd]);
 
   const handleDoubleClick = useCallback((e: MouseEvent<HTMLCanvasElement>) => {

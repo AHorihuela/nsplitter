@@ -20,7 +20,7 @@ interface UseLineManagementResult {
   history: HistoryState;
   handleUndo: () => void;
   handleRedo: () => void;
-  handleLineAdd: (point: Point, isVertical: boolean) => void;
+  handleLineAdd: (point: Point, isShiftPressed: boolean) => void;
   handleLineDrag: (type: 'horizontal' | 'vertical', index: number, point: Point) => void;
   handleLineRemove: (point: Point, threshold: number) => void;
   clearLines: () => void;
@@ -106,13 +106,13 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
     });
   }, []);
 
-  const handleLineAdd = useCallback((point: Point, isVertical: boolean) => {
+  const handleLineAdd = useCallback((point: Point, isShiftPressed: boolean) => {
     if (!canvasDimensions || justFinishedDrag) return;
 
     setHistory(prev => {
       const newState = {
         ...prev.present,
-        ...(isVertical
+        ...(isShiftPressed
           ? {
               vertical: [
                 ...prev.present.vertical,

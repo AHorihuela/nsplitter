@@ -17,4 +17,6 @@ export interface ImageDimensions {
 export interface Point {
   x: number;
   y: number;
-} 
+}
+
+export type LineType = 'horizontal' | 'vertical'; 
