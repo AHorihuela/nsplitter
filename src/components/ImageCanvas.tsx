@@ -1,10 +1,9 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { ImageDimensions, Point } from '../utils/types';
 import { createImageSlicesZip, downloadZip } from '../utils/imageSlicing';
 import { useMouseInteractions } from '../hooks/useMouseInteractions';
 import { useCanvasDrawing } from '../hooks/useCanvasDrawing';
 import { useLineManagement } from '../hooks/useLineManagement';
-import { CanvasControls } from './CanvasControls';
 
 // Constants for interaction
 const DRAG_THRESHOLD = 5;
@@ -12,9 +11,27 @@ const DRAG_THRESHOLD = 5;
 interface ImageCanvasProps {
   imageFile: File | null;
   onLoad?: (dimensions: ImageDimensions) => void;
+  onControlStateChange?: (state: {
+    canUndo: boolean;
+    canRedo: boolean;
+    canExport: boolean;
+    isProcessing: boolean;
+  }) => void;
 }
 
-const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
+// Define ref type for component
+export interface ImageCanvasRef {
+  handleUndo: () => void;
+  handleRedo: () => void;
+  clearLines: () => void;
+  handleExport: () => void;
+}
+
+const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({ 
+  imageFile, 
+  onLoad,
+  onControlStateChange
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasDimensions, setCanvasDimensions] = useState<ImageDimensions | null>(null);
@@ -92,6 +109,14 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
     try {
       setIsProcessing(true);
+      // Update control state
+      onControlStateChange?.({
+        canUndo: history.past.length > 0,
+        canRedo: history.future.length > 0,
+        canExport: true,
+        isProcessing: true
+      });
+      
       const fileType = imageFile.type || 'image/jpeg';
       const zipBlob = await createImageSlicesZip(
         canvasRef.current,
@@ -105,11 +130,36 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
       // TODO: Add proper error handling UI
     } finally {
       setIsProcessing(false);
+      // Update control state
+      onControlStateChange?.({
+        canUndo: history.past.length > 0,
+        canRedo: history.future.length > 0,
+        canExport: true,
+        isProcessing: false
+      });
     }
   };
 
+  // Update control state on history changes
+  React.useEffect(() => {
+    onControlStateChange?.({
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
+      canExport: !!imageFile,
+      isProcessing
+    });
+  }, [history.past.length, history.future.length, imageFile, isProcessing, onControlStateChange]);
+
+  // Expose methods for external components
+  useImperativeHandle(ref, () => ({
+    handleUndo,
+    handleRedo,
+    clearLines,
+    handleExport
+  }), [handleUndo, handleRedo, clearLines, handleExport]);
+
   return (
-    <div className="relative flex flex-col w-full gap-2">
+    <div className="relative flex flex-col w-full">
       <div 
         ref={containerRef}
         className="relative w-full bg-gray-50 border rounded-lg shadow-inner"
@@ -131,18 +181,8 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
           />
         </div>
       </div>
-      <CanvasControls
-        canUndo={history.past.length > 0}
-        canRedo={history.future.length > 0}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onClear={clearLines}
-        onExport={handleExport}
-        isProcessing={isProcessing}
-        showExport={!!imageFile}
-      />
     </div>
   );
-};
+});
 
 export default ImageCanvas; 

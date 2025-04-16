@@ -1,17 +1,33 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import Main from './components/Main'
 import Footer from './components/Footer'
 import LoginPage from './components/LoginPage'
 import ImageUploader from './components/ImageUploader'
-import ImageCanvas from './components/ImageCanvas'
+import ImageCanvas, { ImageCanvasRef } from './components/ImageCanvas'
 import { AuthProvider, useAuth } from './utils/AuthContext'
 import { saveImageToStorage, getImageFromStorage } from './utils/storage'
+
+interface ControlsState {
+  canUndo: boolean;
+  canRedo: boolean;
+  canExport: boolean;
+  isProcessing: boolean;
+}
 
 const AppContent = () => {
   const { isAuthenticated, setIsAuthenticated } = useAuth()
   const [uploadedImage, setUploadedImage] = useState<File | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [controlsState, setControlsState] = useState<ControlsState>({
+    canUndo: false,
+    canRedo: false,
+    canExport: false,
+    isProcessing: false
+  })
+  
+  // Refs to canvas methods
+  const canvasRef = useRef<ImageCanvasRef>(null);
 
   // Load image from storage on initial mount
   useEffect(() => {
@@ -55,6 +71,15 @@ const AppContent = () => {
       <Header 
         showUploadButton={!!uploadedImage}
         onUploadNewClick={() => setUploadedImage(null)}
+        showControls={!!uploadedImage}
+        canUndo={controlsState.canUndo}
+        canRedo={controlsState.canRedo}
+        onUndo={() => canvasRef.current?.handleUndo()}
+        onRedo={() => canvasRef.current?.handleRedo()}
+        onClear={() => canvasRef.current?.clearLines()}
+        onExport={() => canvasRef.current?.handleExport()}
+        isProcessing={controlsState.isProcessing}
+        showExport={controlsState.canExport}
       />
       <Main>
         <div className="w-full min-h-[calc(100vh-8rem)]">
@@ -71,11 +96,15 @@ const AppContent = () => {
             ) : (
               <div className="space-y-3 max-w-[85vw] mx-auto">
                 <div className="bg-white p-3 rounded-lg shadow-sm">
-                  <ImageCanvas imageFile={uploadedImage} />
+                  <ImageCanvas 
+                    imageFile={uploadedImage} 
+                    onControlStateChange={setControlsState}
+                    ref={canvasRef}
+                  />
                 </div>
-                <div className="bg-white p-2 rounded-lg shadow-sm">
+                <div className="bg-white p-3 rounded-lg shadow-sm">
                   <div className="text-sm text-gray-500">
-                    <span className="font-medium">Tip:</span> Hold Shift while hovering to create vertical lines
+                    <span className="font-medium">Tip:</span> Hold Shift while hovering to create vertical lines. Double-click on a line to remove it.
                   </div>
                 </div>
               </div>
