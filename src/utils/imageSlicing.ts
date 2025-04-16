@@ -15,10 +15,14 @@ export function calculateSliceRegions(
   sliceLines: SliceLines,
   dimensions: ImageDimensions
 ): SliceRegion[] {
+  // Minimum region size (1% of the smaller dimension)
+  const minRegionSize = Math.max(10, Math.min(dimensions.width, dimensions.height) * 0.01);
+  
   console.log('DEBUG: Starting slice calculation', {
     dimensions,
     horizontalLines: sliceLines.horizontal,
-    verticalLines: sliceLines.vertical.map(v => v.x)
+    verticalLines: sliceLines.vertical.map(v => v.x),
+    minRegionSize
   });
   
   const horizontalBoundaries = [0, ...sliceLines.horizontal, dimensions.height].sort((a, b) => a - b);
@@ -29,11 +33,26 @@ export function calculateSliceRegions(
   // Generate regions in row-major order (top to bottom, left to right)
   for (let i = 0; i < horizontalBoundaries.length - 1; i++) {
     for (let j = 0; j < verticalBoundaries.length - 1; j++) {
+      const width = verticalBoundaries[j + 1] - verticalBoundaries[j];
+      const height = horizontalBoundaries[i + 1] - horizontalBoundaries[i];
+      
+      // Skip regions that are too small
+      if (width < minRegionSize || height < minRegionSize) {
+        console.warn('Skipping region due to small size:', {
+          width,
+          height,
+          minRegionSize,
+          x: verticalBoundaries[j],
+          y: horizontalBoundaries[i]
+        });
+        continue;
+      }
+      
       const region = {
         x: verticalBoundaries[j],
         y: horizontalBoundaries[i],
-        width: verticalBoundaries[j + 1] - verticalBoundaries[j],
-        height: horizontalBoundaries[i + 1] - horizontalBoundaries[i]
+        width,
+        height
       };
       regions.push(region);
     }

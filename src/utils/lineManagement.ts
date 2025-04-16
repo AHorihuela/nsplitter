@@ -1,4 +1,9 @@
-import { ImageDimensions, VerticalLine, SliceLines } from './types';
+import { ImageDimensions, VerticalLine, SliceLines, Point, LineType } from './types';
+
+// Constants for line management
+export const DRAG_THRESHOLD = 5;
+export const LINE_HOVER_THRESHOLD = 10;
+export const BOUNDARY_PADDING = 20; // Minimum distance from image edges
 
 export function findContainingBoundaries(y: number, height: number, horizontalLines: number[]): { upperBound: number, lowerBound: number } {
   const sortedLines = [...horizontalLines].sort((a, b) => a - b);
@@ -75,11 +80,6 @@ export function updateSliceLinesOnVerticalDrag(
   };
 }
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
 export function findNearestLine(
   point: Point,
   lines: SliceLines,
@@ -110,4 +110,72 @@ export function findNearestLine(
   });
 
   return { type: nearestType, index: nearestIndex };
+}
+
+export function isValidLinePosition(
+  position: number,
+  dimension: number,
+  existingLines: number[],
+  minSpacing: number = 20
+): boolean {
+  // Check boundary padding
+  if (position < BOUNDARY_PADDING || position > dimension - BOUNDARY_PADDING) {
+    console.warn('Line position too close to boundary:', {
+      position,
+      dimension,
+      BOUNDARY_PADDING
+    });
+    return false;
+  }
+
+  // Check minimum spacing between lines
+  const tooClose = existingLines.some(line => 
+    Math.abs(line - position) < minSpacing
+  );
+
+  if (tooClose) {
+    console.warn('Line position too close to existing line:', {
+      position,
+      existingLines,
+      minSpacing
+    });
+    return false;
+  }
+
+  return true;
+}
+
+export function handleLineAdd(
+  point: Point,
+  sliceLines: SliceLines,
+  dimensions: ImageDimensions,
+  type: LineType
+): SliceLines {
+  const position = type === 'horizontal' ? point.y : point.x;
+  const dimension = type === 'horizontal' ? dimensions.height : dimensions.width;
+  const existingLines = type === 'horizontal' ? sliceLines.horizontal : sliceLines.vertical.map(v => v.x);
+
+  if (!isValidLinePosition(position, dimension, existingLines)) {
+    return sliceLines;
+  }
+
+  if (type === 'horizontal') {
+    return {
+      ...sliceLines,
+      horizontal: [...sliceLines.horizontal, position].sort((a, b) => a - b)
+    };
+  } else {
+    // Create a proper VerticalLine object
+    const newVerticalLine: VerticalLine = {
+      x: position,
+      upperBound: 0,
+      lowerBound: dimensions.height
+    };
+    
+    return {
+      ...sliceLines,
+      vertical: [...sliceLines.vertical, newVerticalLine]
+        .sort((a, b) => a.x - b.x)
+    };
+  }
 } 
