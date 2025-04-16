@@ -64,9 +64,6 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             )}
             
-            <span className="text-sm text-gray-500 hidden sm:inline-block">
-              Marketing Team Tool
-            </span>
           </div>
         </div>
       </div>
