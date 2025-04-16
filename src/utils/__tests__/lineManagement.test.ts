@@ -1,5 +1,5 @@
-import { findContainingBoundaries, updateVerticalLineBoundaries, updateSliceLinesOnHorizontalDrag, updateSliceLinesOnVerticalDrag } from '../lineManagement';
-import { SliceLines, ImageDimensions } from '../types';
+import { findContainingBoundaries, updateVerticalLineBoundaries, updateSliceLinesOnHorizontalDrag, updateSliceLinesOnVerticalDrag, findNearestLine } from '../lineManagement';
+import { SliceLines, ImageDimensions, Line, LineType, VerticalLine, Point } from '../types';
 
 describe('findContainingBoundaries', () => {
   const height = 100;
@@ -100,5 +100,34 @@ describe('updateSliceLinesOnVerticalDrag', () => {
     
     expect(result.vertical[0].x).toBe(20);
     expect(result.vertical[1].x).toBe(30);
+  });
+});
+
+describe('findNearestLine', () => {
+  const mockSliceLines: SliceLines = {
+    horizontal: [100, 200, 300],
+    vertical: [
+      { x: 100, upperBound: 0, lowerBound: 400 },
+      { x: 200, upperBound: 0, lowerBound: 400 },
+      { x: 300, upperBound: 0, lowerBound: 400 }
+    ]
+  };
+
+  it('should find nearest horizontal line within threshold', () => {
+    const point: Point = { x: 150, y: 198 };
+    const result = findNearestLine(point, mockSliceLines, 'horizontal', 5);
+    expect(result).toBe(200);
+  });
+
+  it('should find nearest vertical line within threshold', () => {
+    const point: Point = { x: 198, y: 150 };
+    const result = findNearestLine(point, mockSliceLines, 'vertical', 5);
+    expect(result).toBe(200);
+  });
+
+  it('should return null when no line is within threshold', () => {
+    const point: Point = { x: 150, y: 180 };
+    const result = findNearestLine(point, mockSliceLines, 'horizontal', 5);
+    expect(result).toBeNull();
   });
 }); 

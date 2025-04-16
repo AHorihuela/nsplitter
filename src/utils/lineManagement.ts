@@ -73,4 +73,41 @@ export function updateSliceLinesOnVerticalDrag(
     horizontal: lines.horizontal,
     vertical: sortedVertical
   };
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export function findNearestLine(
+  point: Point,
+  lines: SliceLines,
+  threshold: number
+): { type: 'horizontal' | 'vertical' | null; index: number | null } {
+  let nearestDistance = Infinity;
+  let nearestType: 'horizontal' | 'vertical' | null = null;
+  let nearestIndex: number | null = null;
+
+  // Check horizontal lines
+  lines.horizontal.forEach((y, index) => {
+    const distance = Math.abs(point.y - y);
+    if (distance < nearestDistance && distance <= threshold) {
+      nearestDistance = distance;
+      nearestType = 'horizontal';
+      nearestIndex = index;
+    }
+  });
+
+  // Check vertical lines
+  lines.vertical.forEach((line, index) => {
+    const distance = Math.abs(point.x - line.x);
+    if (distance < nearestDistance && distance <= threshold) {
+      nearestDistance = distance;
+      nearestType = 'vertical';
+      nearestIndex = index;
+    }
+  });
+
+  return { type: nearestType, index: nearestIndex };
 } 

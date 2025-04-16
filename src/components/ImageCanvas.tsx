@@ -30,6 +30,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
   const [canvasDimensions, setCanvasDimensions] = useState<ImageDimensions | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hoveredLine, setHoveredLine] = useState<{ type: 'horizontal' | 'vertical', index: number } | null>(null);
+  const [justFinishedDrag, setJustFinishedDrag] = useState(false);
 
   // Get mouse coordinates relative to canvas
   const getCanvasCoordinates = (e: MouseEvent<HTMLCanvasElement>): Point | null => {
@@ -51,30 +52,39 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
   // Find the nearest line to a point
   const findNearestLine = (point: Point, threshold: number = 10): { type: 'horizontal' | 'vertical', index: number } | null => {
-    // Convert threshold to canvas scale
     if (!canvasRef.current) return null;
     const rect = canvasRef.current.getBoundingClientRect();
     const scaleX = canvasRef.current.width / rect.width;
     const scaledThreshold = threshold * scaleX;
 
-    // Check horizontal lines
-    for (let i = 0; i < history.present.horizontal.length; i++) {
-      if (Math.abs(history.present.horizontal[i] - point.y) <= scaledThreshold) {
-        return { type: 'horizontal', index: i };
-      }
+    interface NearestLine {
+      type: 'horizontal' | 'vertical';
+      index: number;
+      distance: number;
     }
+
+    let nearestLine: NearestLine | null = null;
+
+    // Check horizontal lines
+    history.present.horizontal.forEach((y, index) => {
+      const distance = Math.abs(y - point.y);
+      if (distance <= scaledThreshold && (!nearestLine || distance < nearestLine.distance)) {
+        nearestLine = { type: 'horizontal', index, distance };
+      }
+    });
 
     // Check vertical lines
-    for (let i = 0; i < history.present.vertical.length; i++) {
-      const line = history.present.vertical[i];
-      if (Math.abs(line.x - point.x) <= scaledThreshold && 
+    history.present.vertical.forEach((line, index) => {
+      const distance = Math.abs(line.x - point.x);
+      if (distance <= scaledThreshold && 
           point.y >= line.upperBound - scaledThreshold && 
-          point.y <= line.lowerBound + scaledThreshold) {
-        return { type: 'vertical', index: i };
+          point.y <= line.lowerBound + scaledThreshold &&
+          (!nearestLine || distance < nearestLine.distance)) {
+        nearestLine = { type: 'vertical', index, distance };
       }
-    }
+    });
 
-    return null;
+    return nearestLine ? { type: nearestLine.type, index: nearestLine.index } : null;
   };
 
   // Handle keyboard events
@@ -162,13 +172,16 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
   const handleMouseUp = () => {
     if (dragState) {
       setHistory(prev => addToHistory(prev, prev.present));
+      setJustFinishedDrag(true);
+      // Reset the flag after a short delay
+      setTimeout(() => setJustFinishedDrag(false), 100);
     }
     setDragState(null);
   };
 
   // Handle click to add slice line
   const handleCanvasClick = (e: MouseEvent<HTMLCanvasElement>) => {
-    if (dragState) return;
+    if (dragState || justFinishedDrag) return;
     
     const point = getCanvasCoordinates(e);
     if (!point || !canvasDimensions) return;
