@@ -2,8 +2,16 @@ import React from 'react'
 import Header from './components/Header'
 import Main from './components/Main'
 import Footer from './components/Footer'
+import LoginPage from './components/LoginPage'
+import { AuthProvider, useAuth } from './utils/AuthContext'
 
-function App() {
+const AppContent = () => {
+  const { isAuthenticated, setIsAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={(success) => setIsAuthenticated(success)} />
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -15,6 +23,14 @@ function App() {
       </Main>
       <Footer />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 
