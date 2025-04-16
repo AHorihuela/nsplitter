@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { SliceLines, Point, ImageDimensions } from '../utils/types';
 import { findContainingBoundaries, updateSliceLinesOnHorizontalDrag, updateSliceLinesOnVerticalDrag } from '../utils/lineManagement';
 import { HistoryState, createInitialHistory, addToHistory, undo, redo } from '../utils/history';
@@ -16,7 +16,17 @@ interface NearestLine {
   distance: number;
 }
 
-export function useLineManagement(canvasDimensions: ImageDimensions | null) {
+interface UseLineManagementResult {
+  history: HistoryState;
+  handleUndo: () => void;
+  handleRedo: () => void;
+  handleLineAdd: (point: Point, isVertical: boolean) => void;
+  handleLineDrag: (type: 'horizontal' | 'vertical', index: number, point: Point) => void;
+  handleLineRemove: (point: Point, threshold: number) => void;
+  clearLines: () => void;
+}
+
+export function useLineManagement(canvasDimensions: ImageDimensions | null): UseLineManagementResult {
   const [history, setHistory] = useState<HistoryState>(() => {
     const storedLines = getLinesFromStorage();
     return createInitialHistory(storedLines || { horizontal: [], vertical: [] });
@@ -26,7 +36,7 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null) {
   const [justFinishedDrag, setJustFinishedDrag] = useState(false);
 
   const findNearestLine = useCallback((point: Point, threshold: number = 10, scale: number): { type: 'horizontal' | 'vertical', index: number } | null => {
-    const scaledThreshold = threshold * scale;
+    const scaledThreshold = threshold / scale;
     let nearestLine: NearestLine | null = null;
 
     // Check horizontal lines
@@ -96,7 +106,7 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null) {
     });
   }, []);
 
-  const addLine = useCallback((point: Point, isVertical: boolean) => {
+  const handleLineAdd = useCallback((point: Point, isVertical: boolean) => {
     if (!canvasDimensions || justFinishedDrag) return;
 
     setHistory(prev => {
@@ -120,20 +130,50 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null) {
     });
   }, [canvasDimensions, justFinishedDrag]);
 
+  const handleLineDrag = useCallback((type: 'horizontal' | 'vertical', index: number, point: Point) => {
+    if (!canvasDimensions) return;
+
+    setHistory(prev => {
+      const newState = type === 'horizontal'
+        ? updateSliceLinesOnHorizontalDrag(prev.present, index, point.y, canvasDimensions)
+        : updateSliceLinesOnVerticalDrag(prev.present, index, point.x);
+      
+      return {
+        ...prev,
+        present: newState
+      };
+    });
+  }, [canvasDimensions]);
+
+  const handleLineRemove = useCallback((point: Point, threshold: number) => {
+    setHistory(prev => {
+      const newState = {
+        horizontal: prev.present.horizontal.filter(h => Math.abs(h - point.y) > threshold),
+        vertical: prev.present.vertical.filter(v => {
+          const isWithinXThreshold = Math.abs(v.x - point.x) > threshold;
+          const isWithinYRange = point.y >= v.upperBound - threshold && point.y <= v.lowerBound + threshold;
+          return !(isWithinXThreshold === false && isWithinYRange);
+        })
+      };
+      return addToHistory(prev, newState);
+    });
+  }, []);
+
+  const clearLines = useCallback(() => {
+    setHistory(prev => addToHistory(prev, { horizontal: [], vertical: [] }));
+  }, []);
+
+  useEffect(() => {
+    saveLinesToStorage(history.present);
+  }, [history.present]);
+
   return {
-    lines: history.present,
-    canUndo: history.past.length > 0,
-    canRedo: history.future.length > 0,
-    dragState,
-    hoveredLine,
-    justFinishedDrag,
-    findNearestLine,
-    handleDragStart,
-    handleDragMove,
-    handleDragEnd,
+    history,
     handleUndo,
     handleRedo,
-    addLine,
-    setHoveredLine
+    handleLineAdd,
+    handleLineDrag,
+    handleLineRemove,
+    clearLines
   };
 } 

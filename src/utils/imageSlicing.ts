@@ -15,6 +15,12 @@ export function calculateSliceRegions(
   sliceLines: SliceLines,
   dimensions: ImageDimensions
 ): SliceRegion[] {
+  console.log('DEBUG: Starting slice calculation', {
+    dimensions,
+    horizontalLines: sliceLines.horizontal,
+    verticalLines: sliceLines.vertical.map(v => v.x)
+  });
+  
   const horizontalBoundaries = [0, ...sliceLines.horizontal, dimensions.height].sort((a, b) => a - b);
   const verticalBoundaries = [0, ...sliceLines.vertical.map(v => v.x), dimensions.width].sort((a, b) => a - b);
   
@@ -23,15 +29,17 @@ export function calculateSliceRegions(
   // Generate regions in row-major order (top to bottom, left to right)
   for (let i = 0; i < horizontalBoundaries.length - 1; i++) {
     for (let j = 0; j < verticalBoundaries.length - 1; j++) {
-      regions.push({
+      const region = {
         x: verticalBoundaries[j],
         y: horizontalBoundaries[i],
         width: verticalBoundaries[j + 1] - verticalBoundaries[j],
         height: horizontalBoundaries[i + 1] - horizontalBoundaries[i]
-      });
+      };
+      regions.push(region);
     }
   }
   
+  console.log('DEBUG: Generated regions:', regions);
   return regions;
 }
 
@@ -52,6 +60,12 @@ export async function extractRegionToBlob(
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
+  
+  console.log('DEBUG: Extracting region', {
+    region,
+    canvasSize: { width: canvas.width, height: canvas.height },
+    outputSize: { width: tempCanvas.width, height: tempCanvas.height }
+  });
   
   // Draw the region to the temporary canvas
   ctx.drawImage(

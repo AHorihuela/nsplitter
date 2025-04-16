@@ -1,11 +1,12 @@
-import { useState, useCallback, RefObject } from 'react';
-import { Point, SliceLines } from '../utils/types';
+import { useState, useCallback, RefObject, MouseEvent } from 'react';
+import { Point, ImageDimensions, SliceLines } from '../utils/types';
 import { findNearestLine } from '../utils/lineManagement';
 
 const DRAG_THRESHOLD = 5;
 
 interface UseMouseInteractionsProps {
   canvasRef: RefObject<HTMLCanvasElement>;
+  canvasDimensions: ImageDimensions | null;
   lines: SliceLines;
   onDragStart: (type: 'horizontal' | 'vertical', index: number) => void;
   onDragEnd: () => void;
@@ -13,8 +14,20 @@ interface UseMouseInteractionsProps {
   onLineAdd: (point: Point, isShiftPressed: boolean) => void;
 }
 
+interface MouseHandlers {
+  onMouseMove: (e: MouseEvent<HTMLCanvasElement>) => void;
+  onMouseDown: (e: MouseEvent<HTMLCanvasElement>) => void;
+  onMouseUp: (e: MouseEvent<HTMLCanvasElement>) => void;
+  onMouseLeave: () => void;
+  onClick: (e: MouseEvent<HTMLCanvasElement>) => void;
+  onDoubleClick: (e: MouseEvent<HTMLCanvasElement>) => void;
+  onKeyDown: (e: KeyboardEvent) => void;
+  onKeyUp: (e: KeyboardEvent) => void;
+}
+
 export function useMouseInteractions({
   canvasRef,
+  canvasDimensions,
   lines,
   onDragStart,
   onDragEnd,
@@ -27,18 +40,32 @@ export function useMouseInteractions({
   const [hoveredLine, setHoveredLine] = useState<{ type: 'horizontal' | 'vertical', index: number } | null>(null);
   const [hoverLine, setHoverLine] = useState<Point | null>(null);
 
-  const getCanvasPoint = useCallback((e: MouseEvent | React.MouseEvent): Point => {
-    if (!canvasRef.current) return { x: 0, y: 0 };
-    const rect = canvasRef.current.getBoundingClientRect();
-    const scale = canvasRef.current.width / rect.width;
-    return {
-      x: (e.clientX - rect.left) * scale,
-      y: (e.clientY - rect.top) * scale
-    };
-  }, [canvasRef]);
+  const getCanvasCoordinates = (e: MouseEvent<HTMLCanvasElement>): Point | null => {
+    if (!canvasRef.current || !canvasDimensions) return null;
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const point = getCanvasPoint(e);
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Calculate the scale factors
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    // Get position relative to canvas element
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    return { x, y };
+  };
+
+  const getScale = (): number => {
+    if (!canvasRef.current) return 1;
+    const rect = canvasRef.current.getBoundingClientRect();
+    return canvasRef.current.width / rect.width;
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
 
     if (isDragging) {
       onDrag(point);
@@ -46,30 +73,33 @@ export function useMouseInteractions({
     }
 
     // Find nearest line for hover effect
-    const nearest = findNearestLine(point, lines);
-    if (nearest && nearest.distance < DRAG_THRESHOLD) {
-      setHoveredLine(nearest);
+    const scale = getScale();
+    const nearest = findNearestLine(point, lines, DRAG_THRESHOLD / scale);
+    if (nearest && nearest.type && nearest.index !== null) {
+      setHoveredLine({ type: nearest.type, index: nearest.index });
       setHoverLine(null);
     } else {
       setHoveredLine(null);
       setHoverLine(point);
     }
-  }, [isDragging, lines, getCanvasPoint, onDrag]);
+  }, [isDragging, lines, onDrag]);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    const point = getCanvasPoint(e);
-    setDragStartPoint(point);
+  const handleMouseDown = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
 
     if (hoveredLine) {
       setIsDragging(true);
       onDragStart(hoveredLine.type, hoveredLine.index);
     }
-  }, [hoveredLine, getCanvasPoint, onDragStart]);
+  }, [hoveredLine, onDragStart]);
 
-  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+  const handleMouseUp = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
     if (!dragStartPoint) return;
 
-    const point = getCanvasPoint(e);
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
+
     const dx = Math.abs(point.x - dragStartPoint.x);
     const dy = Math.abs(point.y - dragStartPoint.y);
 
@@ -83,7 +113,28 @@ export function useMouseInteractions({
 
     setIsDragging(false);
     setDragStartPoint(null);
-  }, [dragStartPoint, isDragging, isShiftPressed, getCanvasPoint, onLineAdd, onDragEnd]);
+  }, [dragStartPoint, isDragging, isShiftPressed, onLineAdd, onDragEnd]);
+
+  const handleClick = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
+
+    if (!isDragging) {
+      onLineAdd(point, isShiftPressed);
+    }
+  }, [isDragging, isShiftPressed, onLineAdd]);
+
+  const handleDoubleClick = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
+    const point = getCanvasCoordinates(e);
+    if (!point) return;
+
+    // Remove line if double-clicked
+    const scale = getScale();
+    const nearest = findNearestLine(point, lines, DRAG_THRESHOLD / scale);
+    if (nearest && nearest.type && nearest.index !== null) {
+      // Handle line removal
+    }
+  }, [lines]);
 
   const handleMouseLeave = useCallback(() => {
     setHoveredLine(null);
@@ -112,8 +163,10 @@ export function useMouseInteractions({
       onMouseDown: handleMouseDown,
       onMouseUp: handleMouseUp,
       onMouseLeave: handleMouseLeave,
+      onClick: handleClick,
+      onDoubleClick: handleDoubleClick,
       onKeyDown: handleKeyDown,
       onKeyUp: handleKeyUp
-    }
+    } as MouseHandlers
   };
 } 
