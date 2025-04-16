@@ -10,11 +10,11 @@
   - [x] Add environment variable configuration
 
 ## Phase 2: Image Upload and Display
-- [ ] Create drag-and-drop upload zone
-- [ ] Add file input button alternative
-- [ ] Implement file type validation (PNG/JPEG only)
-- [ ] Display uploaded image in canvas
-- [ ] Add basic error handling for uploads
+- [x] Create drag-and-drop upload zone
+- [x] Add file input button alternative
+- [x] Implement file type validation (PNG/JPEG only)
+- [x] Display uploaded image in canvas
+- [x] Add basic error handling for uploads
 
 ## Phase 3: Image Slicing Core Features
 - [ ] Implement horizontal line hover guide
