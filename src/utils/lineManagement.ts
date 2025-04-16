@@ -1,100 +1,77 @@
-import { SliceLines, VerticalLine, ImageDimensions } from './types';
+import { ImageDimensions, VerticalLine, SliceLines } from '../types/lines';
 
-export const findContainingBoundaries = (
-  y: number,
-  height: number,
-  horizontalLines: number[] = []
-) => {
-  const allBoundaries = [0, ...horizontalLines, height].sort((a, b) => a - b);
-  let upperBound = 0;
-  let lowerBound = height;
+export function findContainingBoundaries(y: number, height: number, horizontalLines: number[]): { top: number, bottom: number } {
+  const sortedLines = [...horizontalLines].sort((a, b) => a - b);
+  let top = 0;
+  let bottom = height;
 
-  for (let i = 0; i < allBoundaries.length - 1; i++) {
-    if (y >= allBoundaries[i] && y < allBoundaries[i + 1]) {
-      upperBound = allBoundaries[i];
-      lowerBound = allBoundaries[i + 1];
+  for (const line of sortedLines) {
+    if (line < y) {
+      top = line;
+    } else if (line > y) {
+      bottom = line;
       break;
     }
   }
 
-  return { upperBound, lowerBound };
-};
+  return { top, bottom };
+}
 
-export const updateVerticalLineBoundaries = (
+export function updateVerticalLineBoundaries(
   verticalLines: VerticalLine[],
   horizontalLines: number[],
   dimensions: ImageDimensions
-): VerticalLine[] => {
+): VerticalLine[] {
   return verticalLines.map(line => {
-    // Find the containing boundaries for this vertical line's current position
-    const { upperBound, lowerBound } = findContainingBoundaries(
-      line.x,
-      dimensions.height,
-      horizontalLines
-    );
-
-    // Only update the bounds if they've changed
-    if (line.upperBound !== upperBound || line.lowerBound !== lowerBound) {
-      return {
-        ...line,
-        upperBound,
-        lowerBound
-      };
-    }
-
-    return line;
+    const { top, bottom } = findContainingBoundaries(line.x, dimensions.height, horizontalLines);
+    return {
+      ...line,
+      topBoundary: top,
+      bottomBoundary: bottom
+    };
   });
-};
+}
 
-export const updateSliceLinesOnHorizontalDrag = (
+export function updateSliceLinesOnHorizontalDrag(
   sliceLines: SliceLines,
   dragIndex: number,
   newY: number,
   dimensions: ImageDimensions
-): SliceLines => {
-  // Update horizontal lines
-  const newHorizontal = [...sliceLines.horizontal];
-  newHorizontal[dragIndex] = Math.max(0, Math.min(newY, dimensions.height));
-  const sortedHorizontal = newHorizontal.sort((a, b) => a - b);
-
-  // Update vertical lines with new boundaries
-  const newVertical = updateVerticalLineBoundaries(
-    sliceLines.vertical,
-    sortedHorizontal,
-    dimensions
-  );
+): SliceLines {
+  const updatedHorizontalLines = [...sliceLines.horizontalLines];
+  updatedHorizontalLines[dragIndex] = newY;
 
   return {
-    horizontal: sortedHorizontal,
-    vertical: newVertical
+    horizontalLines: updatedHorizontalLines,
+    verticalLines: updateVerticalLineBoundaries(
+      sliceLines.verticalLines,
+      updatedHorizontalLines,
+      dimensions
+    )
   };
-};
+}
 
-export const updateSliceLinesOnVerticalDrag = (
+export function updateSliceLinesOnVerticalDrag(
   sliceLines: SliceLines,
   dragIndex: number,
   newX: number,
   dimensions: ImageDimensions
-): SliceLines => {
-  const newVertical = [...sliceLines.vertical];
-  const line = newVertical[dragIndex];
-  
-  // Find the containing boundaries for the vertical line
-  const { upperBound, lowerBound } = findContainingBoundaries(
-    line.x,
+): SliceLines {
+  const updatedVerticalLines = [...sliceLines.verticalLines];
+  const { top, bottom } = findContainingBoundaries(
+    newX,
     dimensions.height,
-    sliceLines.horizontal
+    sliceLines.horizontalLines
   );
 
-  newVertical[dragIndex] = {
-    ...line,
-    x: Math.max(0, Math.min(newX, dimensions.width)),
-    upperBound,
-    lowerBound
+  updatedVerticalLines[dragIndex] = {
+    x: newX,
+    topBoundary: top,
+    bottomBoundary: bottom
   };
 
   return {
-    ...sliceLines,
-    vertical: newVertical.sort((a, b) => a.x - b.x)
+    horizontalLines: sliceLines.horizontalLines,
+    verticalLines: updatedVerticalLines
   };
-}; 
+} 
