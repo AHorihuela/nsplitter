@@ -18,47 +18,77 @@ export function calculateSliceRegions(
   // Minimum region size (1% of the smaller dimension)
   const minRegionSize = Math.max(10, Math.min(dimensions.width, dimensions.height) * 0.01);
   
-  console.log('DEBUG: Starting slice calculation', {
-    dimensions,
-    horizontalLines: sliceLines.horizontal,
-    verticalLines: sliceLines.vertical.map(v => v.x),
-    minRegionSize
+  console.log('Image Slicing: Starting calculation with:', {
+    imageWidth: dimensions.width,
+    imageHeight: dimensions.height,
+    horizontalLines: sliceLines.horizontal.length,
+    verticalLines: sliceLines.vertical.length
   });
   
+  // Get horizontal boundaries
   const horizontalBoundaries = [0, ...sliceLines.horizontal, dimensions.height].sort((a, b) => a - b);
+  
+  // Get vertical boundaries
   const verticalBoundaries = [0, ...sliceLines.vertical.map(v => v.x), dimensions.width].sort((a, b) => a - b);
+  
+  console.log('Image Slicing: Boundaries calculated:', {
+    horizontalBoundaries,
+    numVerticalLines: sliceLines.vertical.length,
+    verticalLinesWithBounds: sliceLines.vertical.map(v => ({ x: v.x, upper: v.upperBound, lower: v.lowerBound }))
+  });
   
   const regions: SliceRegion[] = [];
   
-  // Generate regions in row-major order (top to bottom, left to right)
+  // Calculate cell boundaries by iterating through horizontal segments
   for (let i = 0; i < horizontalBoundaries.length - 1; i++) {
-    for (let j = 0; j < verticalBoundaries.length - 1; j++) {
-      const width = verticalBoundaries[j + 1] - verticalBoundaries[j];
-      const height = horizontalBoundaries[i + 1] - horizontalBoundaries[i];
+    const yTop = horizontalBoundaries[i];
+    const yBottom = horizontalBoundaries[i + 1];
+    const height = yBottom - yTop;
+    
+    if (height < minRegionSize) {
+      console.log(`Image Slicing: Skipping horizontal segment (${yTop} to ${yBottom}) - too small`);
+      continue;
+    }
+    
+    // Find all vertical lines that intersect with this horizontal segment
+    const relevantVerticalLines = sliceLines.vertical
+      .filter(vLine => {
+        // Check if vertical line intersects with this horizontal segment
+        const intersects = (vLine.upperBound <= yTop && vLine.lowerBound >= yBottom) || 
+                (vLine.upperBound >= yTop && vLine.upperBound < yBottom) ||
+                (vLine.lowerBound > yTop && vLine.lowerBound <= yBottom);
+        
+        return intersects;
+      })
+      .map(vLine => vLine.x)
+      .sort((a, b) => a - b);
+    
+    console.log(`Image Slicing: For segment y=${yTop} to ${yBottom}, found ${relevantVerticalLines.length} intersecting vertical lines`);
+    
+    // Create a set of vertical boundaries for this horizontal segment
+    const segmentVerticalBoundaries = [0, ...relevantVerticalLines, dimensions.width].sort((a, b) => a - b);
+    
+    // For each pair of vertical boundaries, create a region
+    for (let j = 0; j < segmentVerticalBoundaries.length - 1; j++) {
+      const xLeft = segmentVerticalBoundaries[j];
+      const xRight = segmentVerticalBoundaries[j + 1];
+      const width = xRight - xLeft;
       
-      // Skip regions that are too small
-      if (width < minRegionSize || height < minRegionSize) {
-        console.warn('Skipping region due to small size:', {
-          width,
-          height,
-          minRegionSize,
-          x: verticalBoundaries[j],
-          y: horizontalBoundaries[i]
-        });
+      if (width < minRegionSize) {
+        console.log(`Image Slicing: Skipping region at (${xLeft},${yTop}) with size ${width}x${height} - too small`);
         continue;
       }
       
-      const region = {
-        x: verticalBoundaries[j],
-        y: horizontalBoundaries[i],
+      regions.push({
+        x: xLeft,
+        y: yTop,
         width,
         height
-      };
-      regions.push(region);
+      });
     }
   }
   
-  console.log('DEBUG: Generated regions:', regions);
+  console.log(`Image Slicing: Generated ${regions.length} regions:`, regions);
   return regions;
 }
 
@@ -79,12 +109,6 @@ export async function extractRegionToBlob(
   if (!ctx) {
     throw new Error('Could not get canvas context');
   }
-  
-  console.log('DEBUG: Extracting region', {
-    region,
-    canvasSize: { width: canvas.width, height: canvas.height },
-    outputSize: { width: tempCanvas.width, height: tempCanvas.height }
-  });
   
   // Draw the region to the temporary canvas
   ctx.drawImage(

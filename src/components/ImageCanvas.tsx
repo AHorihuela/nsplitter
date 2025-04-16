@@ -147,6 +147,7 @@ const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({
         isProcessing: true
       });
       
+      console.log('Export: Starting image slicing process');
       const fileType = imageFile.type || 'image/jpeg';
       const zipBlob = await createImageSlicesZip(
         canvasRef.current,
@@ -154,6 +155,7 @@ const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({
         canvasDimensions,
         fileType
       );
+      console.log('Export: Image slicing complete, downloading ZIP');
       downloadZip(zipBlob);
     } catch (error) {
       console.error('Failed to export slices:', error);
