@@ -41,6 +41,7 @@ export function useMouseInteractions({
   const [dragStartPoint, setDragStartPoint] = useState<Point | null>(null);
   const [hoveredLine, setHoveredLine] = useState<{ type: 'horizontal' | 'vertical', index: number } | null>(null);
   const [hoverLine, setHoverLine] = useState<Point | null>(null);
+  const [hasMoved, setHasMoved] = useState(false);
 
   const getCanvasCoordinates = (e: MouseEvent<HTMLCanvasElement>): Point | null => {
     if (!canvasRef.current || !canvasDimensions) return null;
@@ -70,6 +71,7 @@ export function useMouseInteractions({
     if (!point) return;
 
     if (isDragging) {
+      setHasMoved(true);
       onDrag(point);
       return;
     }
@@ -91,6 +93,7 @@ export function useMouseInteractions({
     if (!point) return;
 
     setDragStartPoint(point);
+    setHasMoved(false);
 
     if (hoveredLine) {
       setIsDragging(true);
@@ -108,12 +111,13 @@ export function useMouseInteractions({
     if (isDragging) {
       onDragEnd();
       setIsDragging(false);
-    } else if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD) {
+    } else if (dx < DRAG_THRESHOLD && dy < DRAG_THRESHOLD && !hasMoved) {
       onLineAdd(point, isShiftPressed);
     }
 
     setDragStartPoint(null);
-  }, [dragStartPoint, isDragging, isShiftPressed, onLineAdd, onDragEnd]);
+    setHasMoved(false);
+  }, [dragStartPoint, isDragging, isShiftPressed, onLineAdd, onDragEnd, hasMoved]);
 
   const handleClick = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
     // Do nothing - line creation is handled in mouseUp
