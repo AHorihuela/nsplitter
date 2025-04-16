@@ -30,7 +30,7 @@ Fubo Image Slicer is a client-side web application that helps streamline the wor
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/nsplitter.git
+git clone https://github.com/ahorihuela/nsplitter.git
 cd nsplitter
 ```
 
