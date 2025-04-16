@@ -58,6 +58,7 @@ export const saveLinesToStorage = (lines: SliceLines, imageHash: string): void =
     
     // Save the updated mappings
     localStorage.setItem(IMAGE_LINES_STORAGE_KEY, JSON.stringify(imageLines));
+    console.log(`Saved lines for image ${imageHash}:`, lines);
   } catch (error) {
     console.error('Failed to save lines to local storage:', error);
   }
@@ -67,12 +68,22 @@ export const saveLinesToStorage = (lines: SliceLines, imageHash: string): void =
 export const getLinesFromStorage = (imageHash: string): SliceLines | null => {
   try {
     const storedData = localStorage.getItem(IMAGE_LINES_STORAGE_KEY);
-    if (!storedData) return null;
+    if (!storedData) {
+      console.log('No stored line data found in localStorage');
+      return null;
+    }
     
     const imageLines = JSON.parse(storedData);
+    console.log('All stored image lines:', imageLines);
+    
     const lines = imageLines[imageHash];
     
-    if (!lines) return null;
+    if (!lines) {
+      console.log(`No lines found for image hash: ${imageHash}`);
+      return null;
+    }
+    
+    console.log(`Retrieved lines for image ${imageHash}:`, lines);
     
     // Validate the structure of the retrieved lines
     if (typeof lines === 'object' && 
@@ -86,6 +97,7 @@ export const getLinesFromStorage = (imageHash: string): SliceLines | null => {
         )) {
       return lines as SliceLines;
     }
+    console.log(`Invalid line structure for image ${imageHash}`);
     return null;
   } catch (error) {
     console.error('Failed to get lines from local storage:', error);

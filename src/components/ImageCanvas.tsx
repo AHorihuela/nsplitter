@@ -55,9 +55,23 @@ const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({
   // Update imageHash when it changes externally
   useEffect(() => {
     if (imageHash) {
+      console.log('ImageCanvas received new imageHash:', imageHash);
       updateImageHash(imageHash);
     }
   }, [imageHash, updateImageHash]);
+
+  // Add a separate effect to notify parent when lines change
+  useEffect(() => {
+    onControlStateChange?.({
+      canUndo: history.past.length > 0,
+      canRedo: history.future.length > 0,
+      canExport: !!imageFile,
+      isProcessing
+    });
+    
+    // Log the current state of lines for debugging
+    console.log('Current line state:', history.present);
+  }, [history.past.length, history.future.length, history.present, imageFile, isProcessing, onControlStateChange]);
 
   // Mouse interactions hook
   const {
@@ -150,16 +164,6 @@ const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({
       });
     }
   };
-
-  // Update control state on history changes
-  React.useEffect(() => {
-    onControlStateChange?.({
-      canUndo: history.past.length > 0,
-      canRedo: history.future.length > 0,
-      canExport: !!imageFile,
-      isProcessing
-    });
-  }, [history.past.length, history.future.length, imageFile, isProcessing, onControlStateChange]);
 
   // Expose methods for external components
   useImperativeHandle(ref, () => ({

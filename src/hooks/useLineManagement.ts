@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { SliceLines, Point, ImageDimensions } from '../utils/types';
 import { findContainingBoundaries, updateSliceLinesOnHorizontalDrag, updateSliceLinesOnVerticalDrag, updateVerticalLineBoundaries } from '../utils/lineManagement';
 import { HistoryState, createInitialHistory, addToHistory, undo, redo } from '../utils/history';
@@ -29,12 +29,16 @@ interface UseLineManagementResult {
 
 export function useLineManagement(canvasDimensions: ImageDimensions | null): UseLineManagementResult {
   const [imageHash, setImageHash] = useState<string | null>(() => getCurrentImageHash());
+  const imageHashRef = useRef<string | null>(imageHash);
   const [history, setHistory] = useState<HistoryState>(() => {
     const currentHash = getCurrentImageHash();
     // Only load lines if we have a current image hash
     if (currentHash) {
       const storedLines = getLinesFromStorage(currentHash);
-      return createInitialHistory(storedLines || { horizontal: [], vertical: [] });
+      if (storedLines) {
+        console.log('Loaded lines for image hash:', currentHash, storedLines);
+        return createInitialHistory(storedLines);
+      }
     }
     return createInitialHistory({ horizontal: [], vertical: [] });
   });
@@ -42,14 +46,22 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
   const [hoveredLine, setHoveredLine] = useState<{ type: 'horizontal' | 'vertical', index: number } | null>(null);
   const [justFinishedDrag, setJustFinishedDrag] = useState(false);
 
+  // Update imageHashRef when imageHash changes
+  useEffect(() => {
+    imageHashRef.current = imageHash;
+  }, [imageHash]);
+
   // Update the current image hash
   const updateImageHash = useCallback((hash: string) => {
+    console.log('Updating image hash to:', hash);
     setImageHash(hash);
     // Load lines for this image if they exist
     const storedLines = getLinesFromStorage(hash);
     if (storedLines) {
+      console.log('Found stored lines for hash:', hash, storedLines);
       setHistory(createInitialHistory(storedLines));
     } else {
+      console.log('No stored lines found for hash:', hash);
       // If no lines exist for this image, reset to empty
       setHistory(createInitialHistory({ horizontal: [], vertical: [] }));
     }
@@ -79,7 +91,10 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
     });
 
     // Type safety assertion
-    return nearestLine ? { type: nearestLine.type as 'horizontal' | 'vertical', index: nearestLine.index as number } : null;
+    return nearestLine ? { 
+      type: nearestLine.type as 'horizontal' | 'vertical', 
+      index: nearestLine.index 
+    } : null;
   }, [history.present]);
 
   const handleDragStart = useCallback((point: Point, nearestLine: { type: 'horizontal' | 'vertical', index: number }) => {
@@ -211,7 +226,18 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
   // Save lines to storage whenever they change
   useEffect(() => {
     if (imageHash) {
+      console.log('Saving lines to storage for hash:', imageHash, history.present);
       saveLinesToStorage(history.present, imageHash);
+    } else {
+      const currentHash = getCurrentImageHash();
+      if (currentHash) {
+        console.log('No imageHash in state, but found current hash in storage:', currentHash);
+        console.log('Saving lines to storage for current hash:', currentHash, history.present);
+        saveLinesToStorage(history.present, currentHash);
+        if (!imageHashRef.current) {
+          setImageHash(currentHash);
+        }
+      }
     }
   }, [history.present, imageHash]);
 

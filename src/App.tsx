@@ -53,10 +53,13 @@ const AppContent = () => {
   useEffect(() => {
     const saveImage = async () => {
       if (uploadedImage) {
+        console.log('Saving uploaded image to storage');
         const hash = await saveImageToStorage(uploadedImage)
         setImageHash(hash)
+        console.log('Generated and set image hash:', hash);
         // Update the ImageCanvas with the new hash to load corresponding lines
         if (canvasRef.current && hash) {
+          console.log('Updating canvas image hash to:', hash);
           canvasRef.current.updateImageHash(hash)
         }
       }
