@@ -43,8 +43,8 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
   };
 
   // Find the containing horizontal boundaries for a given y-coordinate
-  const findContainingBoundaries = (y: number, height: number, horizontalLines: number[] = sliceLines.horizontal) => {
-    const allBoundaries = [0, ...horizontalLines, height].sort((a, b) => a - b);
+  const findContainingBoundaries = (y: number, height: number, horizontal: number[] = sliceLines.horizontal) => {
+    const allBoundaries = [0, ...horizontal, height].sort((a, b) => a - b);
     let upperBound = 0;
     let lowerBound = height;
 
@@ -58,7 +58,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
     console.log('Finding boundaries:', {
       y,
-      horizontalLines,
+      horizontalLines: horizontal,
       allBoundaries,
       upperBound,
       lowerBound
@@ -182,10 +182,20 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
             }))
           });
 
-          return {
+          const newState = {
+            ...prev,
             horizontal: sortedHorizontal,
-            vertical: newVertical
+            vertical: newVertical.map(v => {
+              const { upperBound, lowerBound } = findContainingBoundaries(v.x, canvasDimensions!.height, sortedHorizontal);
+              return {
+                ...v,
+                upperBound,
+                lowerBound
+              };
+            })
           };
+
+          return newState;
         } else {
           console.log('Dragging vertical line:', {
             dragIndex: dragState.index,

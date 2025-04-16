@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Header from './components/Header'
 import Main from './components/Main'
 import Footer from './components/Footer'
@@ -6,13 +6,48 @@ import LoginPage from './components/LoginPage'
 import ImageUploader from './components/ImageUploader'
 import ImageCanvas from './components/ImageCanvas'
 import { AuthProvider, useAuth } from './utils/AuthContext'
+import { saveImageToStorage, getImageFromStorage } from './utils/storage'
 
 const AppContent = () => {
   const { isAuthenticated, setIsAuthenticated } = useAuth()
   const [uploadedImage, setUploadedImage] = useState<File | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Load image from storage on initial mount
+  useEffect(() => {
+    const loadStoredImage = async () => {
+      try {
+        const storedImage = await getImageFromStorage()
+        if (storedImage) {
+          setUploadedImage(storedImage)
+        }
+      } catch (error) {
+        console.error('Failed to load stored image:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadStoredImage()
+  }, [])
+
+  // Save image to storage whenever it changes
+  useEffect(() => {
+    if (uploadedImage) {
+      saveImageToStorage(uploadedImage)
+    }
+  }, [uploadedImage])
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={(success) => setIsAuthenticated(success)} />
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    )
   }
 
   return (
