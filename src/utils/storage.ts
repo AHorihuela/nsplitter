@@ -5,15 +5,15 @@ const IMAGE_STORAGE_KEY = 'nsplitter_image';
 
 export const saveLinesToStorage = (lines: SliceLines): void => {
   try {
-    sessionStorage.setItem(LINES_STORAGE_KEY, JSON.stringify(lines));
+    localStorage.setItem(LINES_STORAGE_KEY, JSON.stringify(lines));
   } catch (error) {
-    console.error('Failed to save lines to session storage:', error);
+    console.error('Failed to save lines to local storage:', error);
   }
 };
 
 export const getLinesFromStorage = (): SliceLines | null => {
   try {
-    const stored = sessionStorage.getItem(LINES_STORAGE_KEY);
+    const stored = localStorage.getItem(LINES_STORAGE_KEY);
     if (!stored) return null;
     const parsed = JSON.parse(stored);
     // Ensure the parsed data matches our type structure
@@ -30,7 +30,7 @@ export const getLinesFromStorage = (): SliceLines | null => {
     }
     return null;
   } catch (error) {
-    console.error('Failed to get lines from session storage:', error);
+    console.error('Failed to get lines from local storage:', error);
     return null;
   }
 };
@@ -46,19 +46,19 @@ export const saveImageToStorage = async (file: File): Promise<void> => {
     reader.readAsDataURL(file);
     
     const base64Data = await base64Promise;
-    sessionStorage.setItem(IMAGE_STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(IMAGE_STORAGE_KEY, JSON.stringify({
       data: base64Data,
       name: file.name,
       type: file.type
     }));
   } catch (error) {
-    console.error('Failed to save image to session storage:', error);
+    console.error('Failed to save image to local storage:', error);
   }
 };
 
 export const getImageFromStorage = async (): Promise<File | null> => {
   try {
-    const stored = sessionStorage.getItem(IMAGE_STORAGE_KEY);
+    const stored = localStorage.getItem(IMAGE_STORAGE_KEY);
     if (!stored) return null;
     
     const { data, name, type } = JSON.parse(stored);
@@ -68,15 +68,15 @@ export const getImageFromStorage = async (): Promise<File | null> => {
     const blob = await response.blob();
     return new File([blob], name, { type });
   } catch (error) {
-    console.error('Failed to get image from session storage:', error);
+    console.error('Failed to get image from local storage:', error);
     return null;
   }
 };
 
 export const clearStorage = (): void => {
   try {
-    sessionStorage.removeItem(LINES_STORAGE_KEY);
-    sessionStorage.removeItem(IMAGE_STORAGE_KEY);
+    localStorage.removeItem(LINES_STORAGE_KEY);
+    localStorage.removeItem(IMAGE_STORAGE_KEY);
   } catch (error) {
     console.error('Failed to clear storage:', error);
   }
