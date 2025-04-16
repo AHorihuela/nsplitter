@@ -368,13 +368,13 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
   }, [imageFile, handleClearLines]);
 
   return (
-    <div className="relative flex flex-col w-full gap-4">
+    <div className="relative flex flex-col w-full gap-2">
       <div 
         ref={containerRef}
         className="relative w-full bg-gray-50 border rounded-lg shadow-inner overflow-auto"
-        style={{ maxHeight: '70vh' }}
+        style={{ maxHeight: 'calc(90vh - 120px)' }}
       >
-        <div className="flex items-center justify-center p-6">
+        <div className="flex items-center justify-center p-3">
           <canvas
             ref={canvasRef}
             className={`rounded-lg shadow-lg ${dragState ? 'cursor-move' : hoveredLine ? 'cursor-pointer' : 'cursor-crosshair'}`}
@@ -391,8 +391,8 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
           />
         </div>
       </div>
-      <div className="flex justify-between items-center px-4">
-        <div className="flex items-center gap-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
           <UndoRedo
             canUndo={history.past.length > 0}
             canRedo={history.future.length > 0}
@@ -401,7 +401,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
           />
           <button
             onClick={handleClearLines}
-            className="px-4 py-2 rounded-lg shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+            className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
           >
             Clear Lines
           </button>
@@ -411,7 +411,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
             onClick={handleExport}
             disabled={isProcessing}
             className={`
-              px-4 py-2 rounded-lg shadow-sm text-white
+              px-3 py-1.5 text-sm font-medium rounded-md shadow-sm text-white
               ${isProcessing
                 ? 'bg-blue-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700'}
