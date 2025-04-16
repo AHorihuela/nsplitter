@@ -43,8 +43,8 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
   };
 
   // Find the containing horizontal boundaries for a given y-coordinate
-  const findContainingBoundaries = (y: number, height: number) => {
-    const allBoundaries = [0, ...sliceLines.horizontal, height].sort((a, b) => a - b);
+  const findContainingBoundaries = (y: number, height: number, horizontalLines: number[] = sliceLines.horizontal) => {
+    const allBoundaries = [0, ...horizontalLines, height].sort((a, b) => a - b);
     let upperBound = 0;
     let lowerBound = height;
 
@@ -55,6 +55,14 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
         break;
       }
     }
+
+    console.log('Finding boundaries:', {
+      y,
+      horizontalLines,
+      allBoundaries,
+      upperBound,
+      lowerBound
+    });
 
     return { upperBound, lowerBound };
   };
@@ -115,18 +123,95 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
       e.preventDefault();
       setSliceLines(prev => {
         if (dragState.type === 'horizontal') {
+          console.log('Dragging horizontal line:', {
+            dragIndex: dragState.index,
+            currentPosition: prev.horizontal[dragState.index],
+            newPosition: point.y,
+            allHorizontalLines: prev.horizontal,
+            verticalLines: prev.vertical.map(v => ({
+              x: v.x,
+              upper: v.upperBound,
+              lower: v.lowerBound
+            }))
+          });
+
           const newHorizontal = [...prev.horizontal];
+          const oldY = newHorizontal[dragState.index];
           newHorizontal[dragState.index] = Math.max(0, Math.min(point.y, canvasDimensions.height));
+          const sortedHorizontal = newHorizontal.sort((a, b) => a - b);
+
+          // Update vertical lines' boundaries when horizontal lines move
+          const newVertical = prev.vertical.map((line, idx) => {
+            // If the line was bounded by the moved horizontal line,
+            // we need to update its boundaries
+            const wasUpperBound = Math.abs(line.upperBound - oldY) < 1;
+            const wasLowerBound = Math.abs(line.lowerBound - oldY) < 1;
+
+            console.log(`Checking vertical line ${idx}:`, {
+              x: line.x,
+              currentUpper: line.upperBound,
+              currentLower: line.lowerBound,
+              movedLineOldPosition: oldY,
+              wasUpperBound,
+              wasLowerBound
+            });
+
+            if (wasUpperBound || wasLowerBound) {
+              const { upperBound, lowerBound } = findContainingBoundaries(line.x, canvasDimensions.height, sortedHorizontal);
+              console.log(`Updating vertical line ${idx} bounds:`, {
+                oldUpper: line.upperBound,
+                oldLower: line.lowerBound,
+                newUpper: upperBound,
+                newLower: lowerBound
+              });
+              return {
+                ...line,
+                upperBound,
+                lowerBound
+              };
+            }
+            return line;
+          });
+
+          console.log('Updated state:', {
+            horizontalLines: sortedHorizontal,
+            verticalLines: newVertical.map(v => ({
+              x: v.x,
+              upper: v.upperBound,
+              lower: v.lowerBound
+            }))
+          });
+
           return {
-            ...prev,
-            horizontal: newHorizontal.sort((a, b) => a - b)
+            horizontal: sortedHorizontal,
+            vertical: newVertical
           };
         } else {
+          console.log('Dragging vertical line:', {
+            dragIndex: dragState.index,
+            currentX: prev.vertical[dragState.index].x,
+            newX: point.x,
+            currentPoint: point
+          });
+
           const newVertical = [...prev.vertical];
           const line = newVertical[dragState.index];
+          const { upperBound, lowerBound } = findContainingBoundaries(point.y, canvasDimensions.height);
+          
+          console.log('Updating vertical line bounds:', {
+            oldX: line.x,
+            newX: point.x,
+            oldUpper: line.upperBound,
+            oldLower: line.lowerBound,
+            newUpper: upperBound,
+            newLower: lowerBound
+          });
+
           newVertical[dragState.index] = {
             ...line,
-            x: Math.max(0, Math.min(point.x, canvasDimensions.width))
+            x: Math.max(0, Math.min(point.x, canvasDimensions.width)),
+            upperBound,
+            lowerBound
           };
           return {
             ...prev,
