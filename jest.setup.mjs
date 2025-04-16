@@ -1,4 +1,5 @@
-import { jest } from '@jest/globals';
+const { jest } = require('@jest/globals');
+import '@testing-library/jest-dom'
 
 // Mock canvas functionality
 HTMLCanvasElement.prototype.getContext = function() {
@@ -33,4 +34,39 @@ HTMLCanvasElement.prototype.getContext = function() {
 
 // Mock blob URL creation
 global.URL.createObjectURL = jest.fn();
-global.URL.revokeObjectURL = jest.fn(); 
+global.URL.revokeObjectURL = jest.fn();
+
+// Extend expect matchers
+expect.extend({
+  toBeWithinRange(received, floor, ceiling) {
+    const pass = received >= floor && received <= ceiling;
+    if (pass) {
+      return {
+        message: () =>
+          `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () =>
+          `expected ${received} to be within range ${floor} - ${ceiling}`,
+        pass: false,
+      };
+    }
+  },
+});
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+}); 

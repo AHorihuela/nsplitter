@@ -6,6 +6,9 @@ import { useCanvasDrawing } from '../hooks/useCanvasDrawing';
 import { useLineManagement } from '../hooks/useLineManagement';
 import { CanvasControls } from './CanvasControls';
 
+// Constants for interaction
+const DRAG_THRESHOLD = 5;
+
 interface ImageCanvasProps {
   imageFile: File | null;
   onLoad?: (dimensions: ImageDimensions) => void;
@@ -40,10 +43,12 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     canvasDimensions,
     lines: history.present,
     onDragStart: (type, index) => {
-      // Start dragging a line
+      // Properly handle the start of a drag operation
+      console.log('Started dragging', type, 'line at index', index);
     },
     onDragEnd: () => {
-      // End dragging a line
+      // Properly handle the end of a drag operation
+      console.log('Ended dragging line');
     },
     onDrag: (point: Point) => {
       if (hoveredLine) {
@@ -52,6 +57,17 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     },
     onLineAdd: (point: Point, isShiftPressed: boolean) => {
       handleLineAdd(point, isShiftPressed);
+    },
+    onLineRemove: (point: Point) => {
+      // Get the scale factor to adjust the threshold for removal
+      const getScale = () => {
+        if (!canvasRef.current) return 1;
+        const rect = canvasRef.current.getBoundingClientRect();
+        return canvasRef.current.width / rect.width;
+      };
+      
+      // Apply the scale to the threshold
+      handleLineRemove(point, DRAG_THRESHOLD / getScale());
     }
   });
 

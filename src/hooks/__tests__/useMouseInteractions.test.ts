@@ -14,7 +14,10 @@ describe('useMouseInteractions', () => {
     top: 0,
     right: 800,
     bottom: 600,
-  }));
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect));
   mockCanvas.getBoundingClientRect = mockGetBoundingClientRect;
 
   const mockCanvasRef = {

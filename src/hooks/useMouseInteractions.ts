@@ -1,4 +1,4 @@
-import { useState, useCallback, RefObject, MouseEvent } from 'react';
+import { useState, useCallback, RefObject, MouseEvent, useEffect } from 'react';
 import { Point, ImageDimensions, SliceLines } from '../utils/types';
 import { findNearestLine } from '../utils/lineManagement';
 
@@ -12,6 +12,7 @@ interface UseMouseInteractionsProps {
   onDragEnd: () => void;
   onDrag: (point: Point) => void;
   onLineAdd: (point: Point, isShiftPressed: boolean) => void;
+  onLineRemove?: (point: Point) => void;
 }
 
 interface MouseHandlers {
@@ -32,7 +33,8 @@ export function useMouseInteractions({
   onDragStart,
   onDragEnd,
   onDrag,
-  onLineAdd
+  onLineAdd,
+  onLineRemove
 }: UseMouseInteractionsProps) {
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -82,7 +84,7 @@ export function useMouseInteractions({
       setHoveredLine(null);
       setHoverLine(point);
     }
-  }, [isDragging, lines, onDrag]);
+  }, [isDragging, lines, onDrag, getCanvasCoordinates, getScale]);
 
   const handleMouseDown = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
     const point = getCanvasCoordinates(e);
@@ -114,13 +116,9 @@ export function useMouseInteractions({
   }, [dragStartPoint, isDragging, isShiftPressed, onLineAdd, onDragEnd]);
 
   const handleClick = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
-    if (isDragging) return;
-
-    const point = getCanvasCoordinates(e);
-    if (!point) return;
-
-    onLineAdd(point, isShiftPressed);
-  }, [isDragging, isShiftPressed, onLineAdd]);
+    // Do nothing - line creation is handled in mouseUp
+    e.preventDefault();
+  }, []);
 
   const handleDoubleClick = useCallback((e: MouseEvent<HTMLCanvasElement>) => {
     const point = getCanvasCoordinates(e);
@@ -130,9 +128,11 @@ export function useMouseInteractions({
     const scale = getScale();
     const nearest = findNearestLine(point, lines, DRAG_THRESHOLD / scale);
     if (nearest && nearest.type && nearest.index !== null) {
-      // Handle line removal
+      if (onLineRemove) {
+        onLineRemove(point);
+      }
     }
-  }, [lines]);
+  }, [lines, onLineRemove]);
 
   const handleMouseLeave = useCallback(() => {
     setHoveredLine(null);
@@ -141,15 +141,33 @@ export function useMouseInteractions({
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Shift') {
+      console.log('Shift key pressed');
       setIsShiftPressed(true);
     }
   }, []);
 
   const handleKeyUp = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Shift') {
+      console.log('Shift key released');
       setIsShiftPressed(false);
     }
   }, []);
+
+  // Add effect to handle keyboard events
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [handleKeyDown, handleKeyUp]);
+
+  // Add debug logging for shift state changes
+  useEffect(() => {
+    console.log('Shift pressed state:', isShiftPressed);
+  }, [isShiftPressed]);
 
   return {
     isShiftPressed,
