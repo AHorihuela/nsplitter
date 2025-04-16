@@ -6,7 +6,7 @@ interface MainProps {
 
 const Main = ({ children }: MainProps) => {
   return (
-    <main className="container mx-auto p-4">
+    <main className="flex-1 overflow-auto">
       {children}
     </main>
   );

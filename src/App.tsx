@@ -52,41 +52,35 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      <Header 
+        showUploadButton={!!uploadedImage}
+        onUploadNewClick={() => setUploadedImage(null)}
+      />
       <Main>
-        <div className="max-w-[98vw] mx-auto px-2 sm:px-4 py-2 w-full">
-          {!uploadedImage ? (
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
-                  Upload Your Image
-                </h2>
-                <ImageUploader onImageUpload={setUploadedImage} />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Image Editor
-                </h2>
-                <button
-                  onClick={() => setUploadedImage(null)}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800 bg-white rounded-md border border-gray-300 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                >
-                  Upload New Image
-                </button>
-              </div>
-              <div className="bg-white p-3 rounded-lg shadow-sm">
-                <ImageCanvas imageFile={uploadedImage} />
-              </div>
-              <div className="bg-white p-2 rounded-lg shadow-sm">
-                <div className="text-sm text-gray-500">
-                  <span className="font-medium">Tip:</span> Hold Shift while hovering to create vertical lines
+        <div className="w-full min-h-[calc(100vh-8rem)]">
+          <div className="max-w-[90vw] mx-auto px-2 sm:px-4 py-2 w-full">
+            {!uploadedImage ? (
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
+                    Upload Your Image
+                  </h2>
+                  <ImageUploader onImageUpload={setUploadedImage} />
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="space-y-3 max-w-[85vw] mx-auto">
+                <div className="bg-white p-3 rounded-lg shadow-sm">
+                  <ImageCanvas imageFile={uploadedImage} />
+                </div>
+                <div className="bg-white p-2 rounded-lg shadow-sm">
+                  <div className="text-sm text-gray-500">
+                    <span className="font-medium">Tip:</span> Hold Shift while hovering to create vertical lines
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </Main>
       <Footer />

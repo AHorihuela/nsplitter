@@ -371,8 +371,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     <div className="relative flex flex-col w-full gap-2">
       <div 
         ref={containerRef}
-        className="relative w-full bg-gray-50 border rounded-lg shadow-inner overflow-auto"
-        style={{ maxHeight: 'calc(90vh - 120px)' }}
+        className="relative w-full bg-gray-50 border rounded-lg shadow-inner"
       >
         <div className="flex items-center justify-center p-3">
           <canvas
