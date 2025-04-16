@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import Main from './components/Main'
-import Footer from './components/Footer'
 import LoginPage from './components/LoginPage'
 import ImageUploader from './components/ImageUploader'
 import ImageCanvas, { ImageCanvasRef } from './components/ImageCanvas'
@@ -98,8 +97,8 @@ const AppContent = () => {
         showExport={controlsState.canExport}
       />
       <Main>
-        <div className="w-full min-h-[calc(100vh-8rem)]">
-          <div className="max-w-[90vw] mx-auto px-2 sm:px-4 py-2 w-full">
+        <div className="w-full h-full flex flex-col">
+          <div className="max-w-[95vw] mx-auto px-2 sm:px-4 py-3 w-full flex-grow">
             {!uploadedImage ? (
               <div className="max-w-2xl mx-auto">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
@@ -110,8 +109,8 @@ const AppContent = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-3 max-w-[85vw] mx-auto">
-                <div className="bg-white p-3 rounded-lg shadow-sm max-h-[80vh] overflow-auto">
+              <div className="space-y-3 max-w-[90vw] mx-auto h-full">
+                <div className="bg-white p-3 rounded-lg shadow-sm max-h-[85vh] overflow-auto">
                   <ImageCanvas 
                     imageFile={uploadedImage} 
                     onControlStateChange={setControlsState}
@@ -119,7 +118,7 @@ const AppContent = () => {
                     imageHash={imageHash}
                   />
                 </div>
-                <div className="bg-white p-3 rounded-lg shadow-sm">
+                <div className="bg-white p-2 rounded-lg shadow-sm">
                   <div className="text-sm text-gray-500">
                     <span className="font-medium">Tip:</span> Hold Shift while hovering to create vertical lines. Double-click on a line to remove it.
                   </div>
@@ -129,7 +128,6 @@ const AppContent = () => {
           </div>
         </div>
       </Main>
-      <Footer />
     </div>
   )
 }
