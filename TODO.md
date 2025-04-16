@@ -31,15 +31,15 @@
 - [x] Implement line position constraints
 - [x] Add visual feedback during drag operations
 - [x] Ensure proper line ordering after drag
-- [ ] Add line position persistence in session storage
+- [x] Add line position persistence in session storage
 
 ## Phase 5: Image Processing and Export
-- [ ] Implement image slicing logic using canvas
-- [ ] Add row-major ordering for slice naming
-- [ ] Integrate JSZip for file packaging
-- [ ] Create export functionality
-- [ ] Add download trigger for ZIP file
-- [ ] Implement progress indicator for processing
+- [x] Implement image slicing logic using canvas
+- [x] Add row-major ordering for slice naming
+- [x] Integrate JSZip for file packaging
+- [x] Create export functionality
+- [x] Add download trigger for ZIP file
+- [x] Implement progress indicator for processing
 
 ## Phase 6: Polish and Testing
 - [ ] Add loading states and error messages
