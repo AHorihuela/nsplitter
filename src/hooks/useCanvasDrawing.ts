@@ -1,6 +1,7 @@
 import { useEffect, RefObject } from 'react';
 import { SliceLines, ImageDimensions, Point } from '../utils/types';
 import { findContainingBoundaries } from '../utils/lineManagement';
+import { calculateSliceRegions } from '../utils/imageSlicing';
 
 interface UseCanvasDrawingProps {
   canvasRef: RefObject<HTMLCanvasElement>;
@@ -52,6 +53,61 @@ export function useCanvasDrawing({
       // Make canvas responsive using CSS
       canvas.style.maxWidth = '100%';
       canvas.style.height = 'auto';
+
+      // Calculate slice regions using the same algorithm as export
+      const sliceRegions = calculateSliceRegions(lines, { width, height });
+      
+      // Draw the slice numbers in the top-right corner of each region
+      ctx.save();
+      sliceRegions.forEach((region, index) => {
+        // Draw a semi-transparent background for the number label
+        const labelSize = 24;
+        const padding = 5;
+        const labelX = region.x + region.width - labelSize - padding;
+        const labelY = region.y + padding;
+        
+        // Create a rounded rectangle background
+        const cornerRadius = 4;
+        ctx.fillStyle = 'rgba(37, 99, 235, 0.85)'; // blue-600 with opacity
+        
+        // Draw rounded rectangle
+        ctx.beginPath();
+        ctx.moveTo(labelX + cornerRadius, labelY);
+        ctx.lineTo(labelX + labelSize - cornerRadius, labelY);
+        ctx.quadraticCurveTo(labelX + labelSize, labelY, labelX + labelSize, labelY + cornerRadius);
+        ctx.lineTo(labelX + labelSize, labelY + labelSize - cornerRadius);
+        ctx.quadraticCurveTo(labelX + labelSize, labelY + labelSize, labelX + labelSize - cornerRadius, labelY + labelSize);
+        ctx.lineTo(labelX + cornerRadius, labelY + labelSize);
+        ctx.quadraticCurveTo(labelX, labelY + labelSize, labelX, labelY + labelSize - cornerRadius);
+        ctx.lineTo(labelX, labelY + cornerRadius);
+        ctx.quadraticCurveTo(labelX, labelY, labelX + cornerRadius, labelY);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Add a subtle shadow effect
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        
+        // Draw slice number
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 14px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          (index + 1).toString(),
+          labelX + labelSize / 2,
+          labelY + labelSize / 2
+        );
+        
+        // Reset shadow
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      });
+      ctx.restore();
 
       // Draw existing slice lines
       ctx.lineWidth = 2;

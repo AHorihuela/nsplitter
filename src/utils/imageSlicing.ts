@@ -13,17 +13,20 @@ interface SliceRegion {
  */
 export function calculateSliceRegions(
   sliceLines: SliceLines,
-  dimensions: ImageDimensions
+  dimensions: ImageDimensions,
+  enableLogging: boolean = false
 ): SliceRegion[] {
   // Minimum region size (1% of the smaller dimension)
   const minRegionSize = Math.max(10, Math.min(dimensions.width, dimensions.height) * 0.01);
   
-  console.log('Image Slicing: Starting calculation with:', {
-    imageWidth: dimensions.width,
-    imageHeight: dimensions.height,
-    horizontalLines: sliceLines.horizontal.length,
-    verticalLines: sliceLines.vertical.length
-  });
+  if (enableLogging) {
+    console.log('Image Slicing: Starting calculation with:', {
+      imageWidth: dimensions.width,
+      imageHeight: dimensions.height,
+      horizontalLines: sliceLines.horizontal.length,
+      verticalLines: sliceLines.vertical.length
+    });
+  }
   
   // Get horizontal boundaries
   const horizontalBoundaries = [0, ...sliceLines.horizontal, dimensions.height].sort((a, b) => a - b);
@@ -31,11 +34,13 @@ export function calculateSliceRegions(
   // Get vertical boundaries
   const verticalBoundaries = [0, ...sliceLines.vertical.map(v => v.x), dimensions.width].sort((a, b) => a - b);
   
-  console.log('Image Slicing: Boundaries calculated:', {
-    horizontalBoundaries,
-    numVerticalLines: sliceLines.vertical.length,
-    verticalLinesWithBounds: sliceLines.vertical.map(v => ({ x: v.x, upper: v.upperBound, lower: v.lowerBound }))
-  });
+  if (enableLogging) {
+    console.log('Image Slicing: Boundaries calculated:', {
+      horizontalBoundaries,
+      numVerticalLines: sliceLines.vertical.length,
+      verticalLinesWithBounds: sliceLines.vertical.map(v => ({ x: v.x, upper: v.upperBound, lower: v.lowerBound }))
+    });
+  }
   
   const regions: SliceRegion[] = [];
   
@@ -46,7 +51,9 @@ export function calculateSliceRegions(
     const height = yBottom - yTop;
     
     if (height < minRegionSize) {
-      console.log(`Image Slicing: Skipping horizontal segment (${yTop} to ${yBottom}) - too small`);
+      if (enableLogging) {
+        console.log(`Image Slicing: Skipping horizontal segment (${yTop} to ${yBottom}) - too small`);
+      }
       continue;
     }
     
@@ -63,7 +70,9 @@ export function calculateSliceRegions(
       .map(vLine => vLine.x)
       .sort((a, b) => a - b);
     
-    console.log(`Image Slicing: For segment y=${yTop} to ${yBottom}, found ${relevantVerticalLines.length} intersecting vertical lines`);
+    if (enableLogging) {
+      console.log(`Image Slicing: For segment y=${yTop} to ${yBottom}, found ${relevantVerticalLines.length} intersecting vertical lines`);
+    }
     
     // Create a set of vertical boundaries for this horizontal segment
     const segmentVerticalBoundaries = [0, ...relevantVerticalLines, dimensions.width].sort((a, b) => a - b);
@@ -75,7 +84,9 @@ export function calculateSliceRegions(
       const width = xRight - xLeft;
       
       if (width < minRegionSize) {
-        console.log(`Image Slicing: Skipping region at (${xLeft},${yTop}) with size ${width}x${height} - too small`);
+        if (enableLogging) {
+          console.log(`Image Slicing: Skipping region at (${xLeft},${yTop}) with size ${width}x${height} - too small`);
+        }
         continue;
       }
       
@@ -88,7 +99,9 @@ export function calculateSliceRegions(
     }
   }
   
-  console.log(`Image Slicing: Generated ${regions.length} regions:`, regions);
+  if (enableLogging) {
+    console.log(`Image Slicing: Generated ${regions.length} regions:`, regions);
+  }
   return regions;
 }
 
@@ -141,7 +154,8 @@ export async function createImageSlicesZip(
   dimensions: ImageDimensions,
   fileType: string = 'image/jpeg'
 ): Promise<Blob> {
-  const regions = calculateSliceRegions(sliceLines, dimensions);
+  // When exporting, we want to enable logging
+  const regions = calculateSliceRegions(sliceLines, dimensions, true);
   const zip = new JSZip();
   
   // Process each region and add to zip
