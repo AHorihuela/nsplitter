@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { SliceLines, Point, ImageDimensions } from '../utils/types';
-import { findContainingBoundaries, updateSliceLinesOnHorizontalDrag, updateSliceLinesOnVerticalDrag } from '../utils/lineManagement';
+import { findContainingBoundaries, updateSliceLinesOnHorizontalDrag, updateSliceLinesOnVerticalDrag, updateVerticalLineBoundaries } from '../utils/lineManagement';
 import { HistoryState, createInitialHistory, addToHistory, undo, redo } from '../utils/history';
 import { saveLinesToStorage, getLinesFromStorage } from '../utils/storage';
 
@@ -58,7 +58,8 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
       }
     });
 
-    return nearestLine ? { type: nearestLine.type, index: nearestLine.index } : null;
+    // Type safety assertion
+    return nearestLine ? { type: nearestLine.type as 'horizontal' | 'vertical', index: nearestLine.index as number } : null;
   }, [history.present]);
 
   const handleDragStart = useCallback((point: Point, nearestLine: { type: 'horizontal' | 'vertical', index: number }) => {
@@ -146,18 +147,40 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
   }, [canvasDimensions]);
 
   const handleLineRemove = useCallback((point: Point, threshold: number) => {
+    if (!canvasDimensions) return;
+    
     setHistory(prev => {
+      // Check if we're removing a horizontal line
+      const removingHorizontal = prev.present.horizontal.some(h => Math.abs(h - point.y) <= threshold);
+      
+      // Filter the horizontal lines
+      const newHorizontal = prev.present.horizontal.filter(h => Math.abs(h - point.y) > threshold);
+      
+      // Filter vertical lines
+      const newVertical = prev.present.vertical.filter(v => {
+        const isWithinXThreshold = Math.abs(v.x - point.x) > threshold;
+        const isWithinYRange = point.y >= v.upperBound - threshold && point.y <= v.lowerBound + threshold;
+        return !(isWithinXThreshold === false && isWithinYRange);
+      });
+      
+      // If we removed a horizontal line, we need to update all vertical line boundaries
+      let finalVertical = newVertical;
+      if (removingHorizontal) {
+        finalVertical = updateVerticalLineBoundaries(
+          newVertical,
+          newHorizontal,
+          canvasDimensions.height
+        );
+      }
+      
       const newState = {
-        horizontal: prev.present.horizontal.filter(h => Math.abs(h - point.y) > threshold),
-        vertical: prev.present.vertical.filter(v => {
-          const isWithinXThreshold = Math.abs(v.x - point.x) > threshold;
-          const isWithinYRange = point.y >= v.upperBound - threshold && point.y <= v.lowerBound + threshold;
-          return !(isWithinXThreshold === false && isWithinYRange);
-        })
+        horizontal: newHorizontal,
+        vertical: finalVertical
       };
+      
       return addToHistory(prev, newState);
     });
-  }, []);
+  }, [canvasDimensions]);
 
   const clearLines = useCallback(() => {
     setHistory(prev => addToHistory(prev, { horizontal: [], vertical: [] }));
