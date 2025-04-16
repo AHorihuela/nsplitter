@@ -164,6 +164,8 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
       });
       
       // If we removed a horizontal line, we need to update all vertical line boundaries
+      // This ensures vertical lines automatically extend to their next boundaries
+      // (either another horizontal line or the edge of the image)
       let finalVertical = newVertical;
       if (removingHorizontal) {
         finalVertical = updateVerticalLineBoundaries(
