@@ -1,4 +1,16 @@
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
+
+// Mock JSZip
+jest.mock('jszip', () => {
+  return jest.fn().mockImplementation(() => {
+    return {
+      file: jest.fn(),
+      generateAsync: jest.fn().mockResolvedValue(
+        new Blob(['mock zip content'], { type: 'application/zip' })
+      )
+    };
+  });
+});
 
 // Mock canvas functionality
 HTMLCanvasElement.prototype.getContext = function() {
@@ -30,12 +42,28 @@ HTMLCanvasElement.prototype.getContext = function() {
     strokeRect: jest.fn(),
     save: jest.fn(),
     restore: jest.fn(),
-    setLineDash: jest.fn()
+    setLineDash: jest.fn(),
+    strokeStyle: '',
+    fillStyle: '',
+    lineWidth: 1,
+    textAlign: '',
+    textBaseline: '',
+    font: '',
+    shadowColor: '',
+    shadowBlur: 0,
+    shadowOffsetX: 0,
+    shadowOffsetY: 0
   };
 };
 
+// Mock HTMLCanvasElement toBlob method
+HTMLCanvasElement.prototype.toBlob = function(callback, type, quality) {
+  const blob = new Blob(['mock blob data'], { type: type || 'image/jpeg' });
+  callback(blob);
+};
+
 // Mock blob URL creation
-global.URL.createObjectURL = jest.fn();
+global.URL.createObjectURL = jest.fn().mockReturnValue('mock-url');
 global.URL.revokeObjectURL = jest.fn();
 
 // Extend expect matchers

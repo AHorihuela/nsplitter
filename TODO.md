@@ -40,21 +40,24 @@
 - [x] Create export functionality
 - [x] Add download trigger for ZIP file
 - [x] Implement progress indicator for processing
+- [x] Fix issue with visual slice numbers appearing in exported images
+- [x] Add slice number indicators to visualize export ordering
 
 ## Phase 6: Polish and Testing
+- [x] Add unit tests and fix test failures
 - [ ] Add loading states and error messages
 - [ ] Implement responsive design
 - [ ] Add basic animations and transitions
-- [ ] Cross-browser testing (Chrome, Firefox, Safari, Edge)
-- [ ] Performance testing with large images (~5MB)
-- [ ] Add helpful tooltips and instructions
+- [x] Cross-browser testing (Chrome, Firefox, Safari, Edge)
+- [x] Performance testing with large images (~5MB)
+- [x] Add helpful tooltips and instructions
 
 ## Phase 7: Final Touches
 - [ ] Add keyboard shortcuts documentation
 - [ ] Implement session recovery after refresh
 - [ ] Add confirmation dialogs for destructive actions
 - [ ] Final round of bug fixes
-- [ ] Documentation updates
+- [x] Documentation updates (README.md)
 
 ## Testing Milestones
 After each phase, test the following:

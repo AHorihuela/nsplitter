@@ -1,4 +1,4 @@
-import { calculateSliceRegions, extractRegionToBlob, createImageSlicesZip } from '../imageSlicing';
+import { calculateSliceRegions, extractRegionToBlob, createImageSlicesZip, createCleanCanvas, createCleanCanvasFromImage } from '../imageSlicing';
 import { SliceLines, ImageDimensions } from '../types';
 
 describe('calculateSliceRegions', () => {
@@ -16,7 +16,7 @@ describe('calculateSliceRegions', () => {
   };
 
   test('calculates regions correctly', () => {
-    const regions = calculateSliceRegions(mockSliceLines, mockDimensions);
+    const regions = calculateSliceRegions(mockSliceLines, mockDimensions, false);
     
     expect(regions).toHaveLength(9); // 3x3 grid
     
@@ -37,8 +37,22 @@ describe('calculateSliceRegions', () => {
       ]
     };
 
-    const regions = calculateSliceRegions(tinySliceLines, mockDimensions);
+    const regions = calculateSliceRegions(tinySliceLines, mockDimensions, false);
     expect(regions.length).toBeLessThan(4); // Some regions should be skipped
+  });
+});
+
+describe('createCleanCanvas', () => {
+  test('creates a clean canvas with the same dimensions', () => {
+    const sourceCanvas = document.createElement('canvas');
+    sourceCanvas.width = 400;
+    sourceCanvas.height = 300;
+    
+    const cleanCanvas = createCleanCanvas(sourceCanvas);
+    
+    expect(cleanCanvas).toBeInstanceOf(HTMLCanvasElement);
+    expect(cleanCanvas.width).toBe(400);
+    expect(cleanCanvas.height).toBe(300);
   });
 });
 
@@ -72,15 +86,20 @@ describe('extractRegionToBlob', () => {
       height: 100
     };
 
-    // Mock getContext to return null
-    const originalGetContext = mockCanvas.getContext;
-    mockCanvas.getContext = () => null;
+    // Create a proper mock that returns null
+    jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => null);
 
-    await expect(extractRegionToBlob(mockCanvas, region, 'image/jpeg'))
-      .rejects
-      .toThrow('Could not get canvas context');
+    // Use try/catch to verify the error is thrown
+    try {
+      await extractRegionToBlob(mockCanvas, region, 'image/jpeg');
+      // If we reach here, the test should fail
+      fail('Expected function to throw an error');
+    } catch (error: any) {
+      expect(error.message).toBe('Could not get canvas context');
+    }
 
-    mockCanvas.getContext = originalGetContext;
+    // Restore the original behavior
+    jest.restoreAllMocks();
   });
 });
 
