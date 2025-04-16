@@ -36,10 +36,6 @@ export function useCanvasDrawing({
 
     img.onload = () => {
       // Use the original image dimensions (100% size)
-      console.log('DEBUG: Original image dimensions:', {
-        width: img.width,
-        height: img.height
-      });
       
       // Set canvas to original image dimensions
       let width = img.width;

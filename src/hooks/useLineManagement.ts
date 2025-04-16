@@ -14,11 +14,11 @@ interface DragState {
 }
 
 // Type definition for a line with position and distance
-type LineWithDistance = {
+interface LineWithDistance {
   type: 'horizontal' | 'vertical';
   index: number;
   distance: number;
-};
+}
 
 interface UseLineManagementResult {
   history: HistoryState;
@@ -69,13 +69,19 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
 
   const findNearestLine = useCallback((point: Point, threshold: number = 10, scale: number): { type: 'horizontal' | 'vertical', index: number } | null => {
     const scaledThreshold = threshold / scale;
-    let nearestLine: LineWithDistance | null = null;
+    
+    // Variables to track the closest line
+    let closestDistance = Number.MAX_VALUE;
+    let closestType: 'horizontal' | 'vertical' | null = null;
+    let closestIndex = -1;
 
     // Check horizontal lines
     history.present.horizontal.forEach((y, index) => {
       const distance = Math.abs(y - point.y);
-      if (distance <= scaledThreshold && (!nearestLine || distance < nearestLine.distance)) {
-        nearestLine = { type: 'horizontal', index, distance };
+      if (distance <= scaledThreshold && distance < closestDistance) {
+        closestDistance = distance;
+        closestType = 'horizontal';
+        closestIndex = index;
       }
     });
 
@@ -85,21 +91,21 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
       if (distance <= scaledThreshold && 
           point.y >= line.upperBound - scaledThreshold && 
           point.y <= line.lowerBound + scaledThreshold &&
-          (!nearestLine || distance < nearestLine.distance)) {
-        nearestLine = { type: 'vertical', index, distance };
+          distance < closestDistance) {
+        closestDistance = distance;
+        closestType = 'vertical';
+        closestIndex = index;
       }
     });
 
-    // Return result without the distance property
-    if (!nearestLine) return null;
-    
-    // Create a new object with only the needed properties
-    const result: { type: 'horizontal' | 'vertical', index: number } = {
-      type: nearestLine.type === 'horizontal' ? 'horizontal' : 'vertical',
-      index: nearestLine.index
+    // Return null if no nearest line found
+    if (closestType === null || closestIndex === -1) return null;
+
+    // Return the closest line info
+    return {
+      type: closestType,
+      index: closestIndex
     };
-    
-    return result;
   }, [history.present]);
 
   const handleDragStart = useCallback((point: Point, nearestLine: { type: 'horizontal' | 'vertical', index: number }) => {
