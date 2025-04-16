@@ -1,54 +1,100 @@
-# React + TypeScript + Vite
+# Fubo Image Slicer
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A web application that enables Fubo's marketing team to easily slice images for newsletters and other marketing materials.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Fubo Image Slicer is a client-side web application that helps streamline the workflow of creating sliced images for email newsletters. It provides an intuitive interface for uploading images, adding horizontal and vertical slice lines, and exporting the resulting sub-images as a ZIP file.
 
-## Expanding the ESLint configuration
+## Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Image Upload**: Drag-and-drop or file picker for PNG and JPEG images
+- **Intuitive Slicing**: 
+  - Hover and click to add horizontal slice lines
+  - Shift+hover and click to add vertical slice lines
+  - Double-click to remove lines
+  - Drag to reposition lines
+- **Visual Numbering**: Each slice is numbered in real-time showing the export order
+- **Export Functionality**: Export all slices as a ZIP file with numbered images
+- **Session Persistence**: Slice lines are saved to browser storage for the current session
+- **Basic Security**: Simple password protection to control access
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/nsplitter.git
+cd nsplitter
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+2. Install dependencies
+```bash
+npm install
+# or
+yarn
 ```
+
+3. Create a `.env` file in the root directory and add:
+```
+VITE_APP_PASSWORD=yourpassword
+```
+
+4. Start the development server
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+5. Open your browser and navigate to `http://localhost:5173`
+
+## Usage
+
+1. **Login**: Enter the password specified in your `.env` file
+2. **Upload an Image**: Drag and drop or click to select a PNG or JPEG file
+3. **Add Slice Lines**:
+   - Move your cursor over the image to see a horizontal guide line
+   - Click to add a horizontal slice line
+   - Hold Shift and move your cursor to see a vertical guide line
+   - Click while holding Shift to add a vertical slice line
+4. **Adjust Lines**:
+   - Drag any line to reposition it
+   - Double-click a line to remove it
+5. **Export**: Click the "Export Slices" button to download a ZIP file containing all slices
+   - Slices are numbered in row-major order (top-to-bottom, left-to-right)
+
+## Building for Production
+
+```bash
+npm run build
+# or
+yarn build
+```
+
+The built files will be in the `dist` directory, ready to be deployed to any static hosting service.
+
+## Technologies Used
+
+- React with TypeScript
+- Vite for fast development and optimized builds
+- HTML5 Canvas for image manipulation
+- JSZip for client-side ZIP file creation
+- TailwindCSS for styling
+- LocalStorage for session persistence
+
+## Limitations
+
+- Works best with images up to 5MB in size
+- Designed for modern browsers (Chrome, Firefox, Safari, Edge)
+- All processing happens client-side, so performance depends on the user's device
+
+## License
+
+This project is proprietary software for Fubo's internal use.

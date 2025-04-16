@@ -9,6 +9,63 @@ interface SliceRegion {
 }
 
 /**
+ * Create a clean canvas with just the image (no slice numbers)
+ * for use in exporting
+ */
+export function createCleanCanvas(
+  sourceCanvas: HTMLCanvasElement
+): HTMLCanvasElement {
+  // Create a new canvas with the same dimensions
+  const cleanCanvas = document.createElement('canvas');
+  cleanCanvas.width = sourceCanvas.width;
+  cleanCanvas.height = sourceCanvas.height;
+  
+  // Get the 2D rendering context
+  const ctx = cleanCanvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+  
+  // Draw only the base image (without UI elements like slice numbers)
+  ctx.drawImage(sourceCanvas, 0, 0);
+  
+  return cleanCanvas;
+}
+
+/**
+ * Create a clean canvas specifically for exporting, using the original image file
+ */
+export async function createCleanCanvasFromImage(
+  dimensions: ImageDimensions,
+  imageFile: File
+): Promise<HTMLCanvasElement> {
+  // Create a new canvas with the same dimensions
+  const cleanCanvas = document.createElement('canvas');
+  cleanCanvas.width = dimensions.width;
+  cleanCanvas.height = dimensions.height;
+  
+  // Get the 2D rendering context
+  const ctx = cleanCanvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+  
+  // Draw the original image from scratch
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, dimensions.width, dimensions.height);
+      URL.revokeObjectURL(img.src);
+      resolve(cleanCanvas);
+    };
+    img.onerror = () => {
+      reject(new Error('Failed to load image'));
+    };
+    img.src = URL.createObjectURL(imageFile);
+  });
+}
+
+/**
  * Calculate slice regions based on horizontal and vertical lines
  */
 export function calculateSliceRegions(
@@ -152,15 +209,23 @@ export async function createImageSlicesZip(
   canvas: HTMLCanvasElement,
   sliceLines: SliceLines,
   dimensions: ImageDimensions,
-  fileType: string = 'image/jpeg'
+  fileType: string = 'image/jpeg',
+  imageFile?: File
 ): Promise<Blob> {
   // When exporting, we want to enable logging
   const regions = calculateSliceRegions(sliceLines, dimensions, true);
   const zip = new JSZip();
   
+  // Create a clean canvas for exporting (without slice numbers)
+  // If we have the original image file, use it for the best quality
+  const cleanCanvas = imageFile 
+    ? await createCleanCanvasFromImage(dimensions, imageFile)
+    : createCleanCanvas(canvas);
+  
   // Process each region and add to zip
   const slicePromises = regions.map(async (region, index) => {
-    const blob = await extractRegionToBlob(canvas, region, fileType);
+    // Use the clean canvas for extraction
+    const blob = await extractRegionToBlob(cleanCanvas, region, fileType);
     const extension = fileType === 'image/png' ? 'png' : 'jpg';
     zip.file(`${index + 1}.${extension}`, blob);
   });
@@ -168,7 +233,6 @@ export async function createImageSlicesZip(
   // Wait for all slices to be processed
   await Promise.all(slicePromises);
   
-  // Generate the zip file
   return zip.generateAsync({ type: 'blob' });
 }
 

@@ -153,7 +153,8 @@ const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({
         canvasRef.current,
         history.present,
         canvasDimensions,
-        fileType
+        fileType,
+        imageFile
       );
       console.log('Export: Image slicing complete, downloading ZIP');
       downloadZip(zipBlob);
