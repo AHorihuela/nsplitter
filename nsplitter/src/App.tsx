@@ -16,23 +16,40 @@ const AppContent = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       <Main>
-        <div className="flex-grow space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
           {!uploadedImage ? (
             <div className="max-w-2xl mx-auto">
-              <ImageUploader onImageUpload={setUploadedImage} />
+              <div className="bg-white p-8 rounded-lg shadow-sm">
+                <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
+                  Upload Your Image
+                </h2>
+                <ImageUploader onImageUpload={setUploadedImage} />
+              </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center space-y-4">
-              <ImageCanvas imageFile={uploadedImage} />
-              <button
-                onClick={() => setUploadedImage(null)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-              >
-                Upload a different image
-              </button>
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-semibold text-gray-800">
+                  Image Editor
+                </h2>
+                <button
+                  onClick={() => setUploadedImage(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-white rounded-md border border-gray-300 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                >
+                  Upload a different image
+                </button>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <ImageCanvas imageFile={uploadedImage} />
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm">
+                <div className="text-sm text-gray-500">
+                  <span className="font-medium">Tip:</span> Hold Shift while hovering to create vertical lines
+                </div>
+              </div>
             </div>
           )}
         </div>

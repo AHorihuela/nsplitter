@@ -17,13 +17,14 @@
 - [x] Add basic error handling for uploads
 
 ## Phase 3: Image Slicing Core Features
-- [ ] Implement horizontal line hover guide
-- [ ] Add horizontal line placement on click
-- [ ] Implement vertical line hover guide (with Shift key)
-- [ ] Add vertical line placement on Shift+click
-- [ ] Enable double-click to remove lines
-- [ ] Store line coordinates in state
-- [ ] Implement basic rendering of slice lines
+- [x] Implement horizontal line hover guide
+- [x] Add horizontal line placement on click
+- [x] Implement vertical line hover guide (with Shift key)
+- [x] Add vertical line placement on Shift+click
+- [x] Enable double-click to remove lines
+- [x] Store line coordinates in state
+- [x] Implement basic rendering of slice lines
+- [ ] Add dragging functionality to existing lines
 
 ## Phase 4: Line Manipulation
 - [ ] Add drag functionality to existing lines
