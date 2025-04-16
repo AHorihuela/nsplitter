@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, MouseEvent } from 'react';
-import { SliceLines, ImageDimensions, Point } from '../utils/types';
+import { SliceLines, ImageDimensions, Point, VerticalLine } from '../utils/types';
 
 interface ImageCanvasProps {
   imageFile: File | null;
@@ -16,6 +16,23 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     vertical: []
   });
   const [canvasDimensions, setCanvasDimensions] = useState<ImageDimensions | null>(null);
+
+  // Find the containing horizontal boundaries for a given y-coordinate
+  const findContainingBoundaries = (y: number, height: number) => {
+    const allBoundaries = [0, ...sliceLines.horizontal, height].sort((a, b) => a - b);
+    let upperBound = 0;
+    let lowerBound = height;
+
+    for (let i = 0; i < allBoundaries.length - 1; i++) {
+      if (y >= allBoundaries[i] && y <= allBoundaries[i + 1]) {
+        upperBound = allBoundaries[i];
+        lowerBound = allBoundaries[i + 1];
+        break;
+      }
+    }
+
+    return { upperBound, lowerBound };
+  };
 
   // Handle keyboard events
   useEffect(() => {
@@ -57,9 +74,20 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
     setSliceLines(prev => {
       if (isShiftPressed) {
+        const { upperBound, lowerBound } = findContainingBoundaries(y, canvasDimensions.height);
+        const newVerticalLine: VerticalLine = {
+          x,
+          upperBound,
+          lowerBound
+        };
+        
+        // Sort vertical lines by x-coordinate
+        const newVertical = [...prev.vertical, newVerticalLine]
+          .sort((a, b) => a.x - b.x);
+        
         return {
           ...prev,
-          vertical: [...prev.vertical, x].sort((a, b) => a - b)
+          vertical: newVertical
         };
       } else {
         return {
@@ -81,7 +109,11 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
 
     setSliceLines(prev => ({
       horizontal: prev.horizontal.filter(h => Math.abs(h - y) > threshold),
-      vertical: prev.vertical.filter(v => Math.abs(v - x) > threshold)
+      vertical: prev.vertical.filter(v => {
+        const isWithinXThreshold = Math.abs(v.x - x) > threshold;
+        const isWithinYRange = y >= v.upperBound - threshold && y <= v.lowerBound + threshold;
+        return !(isWithinXThreshold === false && isWithinYRange);
+      })
     }));
   };
 
@@ -134,11 +166,11 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
         ctx.stroke();
       });
 
-      // Draw vertical lines
-      sliceLines.vertical.forEach(x => {
+      // Draw vertical lines within their sections
+      sliceLines.vertical.forEach(line => {
         ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
+        ctx.moveTo(line.x, line.upperBound);
+        ctx.lineTo(line.x, line.lowerBound);
         ctx.stroke();
       });
 
@@ -149,9 +181,11 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
         ctx.setLineDash([5, 5]);
         
         if (isShiftPressed) {
+          // For vertical hover guide, only show between containing boundaries
+          const { upperBound, lowerBound } = findContainingBoundaries(hoverLine.y, height);
           ctx.beginPath();
-          ctx.moveTo(hoverLine.x, 0);
-          ctx.lineTo(hoverLine.x, height);
+          ctx.moveTo(hoverLine.x, upperBound);
+          ctx.lineTo(hoverLine.x, lowerBound);
           ctx.stroke();
         } else {
           ctx.beginPath();
