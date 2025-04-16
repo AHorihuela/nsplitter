@@ -18,6 +18,7 @@ interface ControlsState {
 const AppContent = () => {
   const { isAuthenticated, setIsAuthenticated } = useAuth()
   const [uploadedImage, setUploadedImage] = useState<File | null>(null)
+  const [imageHash, setImageHash] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [controlsState, setControlsState] = useState<ControlsState>({
     canUndo: false,
@@ -33,9 +34,10 @@ const AppContent = () => {
   useEffect(() => {
     const loadStoredImage = async () => {
       try {
-        const storedImage = await getImageFromStorage()
-        if (storedImage) {
-          setUploadedImage(storedImage)
+        const storedImageData = await getImageFromStorage()
+        if (storedImageData) {
+          setUploadedImage(storedImageData.file)
+          setImageHash(storedImageData.hash)
         }
       } catch (error) {
         console.error('Failed to load stored image:', error)
@@ -49,10 +51,24 @@ const AppContent = () => {
 
   // Save image to storage whenever it changes
   useEffect(() => {
-    if (uploadedImage) {
-      saveImageToStorage(uploadedImage)
+    const saveImage = async () => {
+      if (uploadedImage) {
+        const hash = await saveImageToStorage(uploadedImage)
+        setImageHash(hash)
+        // Update the ImageCanvas with the new hash to load corresponding lines
+        if (canvasRef.current && hash) {
+          canvasRef.current.updateImageHash(hash)
+        }
+      }
     }
+
+    saveImage()
   }, [uploadedImage])
+
+  // Handler for when a new image is uploaded
+  const handleImageUpload = async (file: File) => {
+    setUploadedImage(file)
+  }
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={(success) => setIsAuthenticated(success)} />
@@ -90,16 +106,17 @@ const AppContent = () => {
                   <h2 className="text-xl font-semibold text-gray-800 mb-4 text-center">
                     Upload Your Image
                   </h2>
-                  <ImageUploader onImageUpload={setUploadedImage} />
+                  <ImageUploader onImageUpload={handleImageUpload} />
                 </div>
               </div>
             ) : (
               <div className="space-y-3 max-w-[85vw] mx-auto">
-                <div className="bg-white p-3 rounded-lg shadow-sm">
+                <div className="bg-white p-3 rounded-lg shadow-sm max-h-[80vh] overflow-auto">
                   <ImageCanvas 
                     imageFile={uploadedImage} 
                     onControlStateChange={setControlsState}
                     ref={canvasRef}
+                    imageHash={imageHash}
                   />
                 </div>
                 <div className="bg-white p-3 rounded-lg shadow-sm">

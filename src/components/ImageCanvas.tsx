@@ -1,4 +1,4 @@
-import React, { useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useState, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { ImageDimensions, Point } from '../utils/types';
 import { createImageSlicesZip, downloadZip } from '../utils/imageSlicing';
 import { useMouseInteractions } from '../hooks/useMouseInteractions';
@@ -10,6 +10,7 @@ const DRAG_THRESHOLD = 5;
 
 interface ImageCanvasProps {
   imageFile: File | null;
+  imageHash?: string | null;
   onLoad?: (dimensions: ImageDimensions) => void;
   onControlStateChange?: (state: {
     canUndo: boolean;
@@ -25,10 +26,12 @@ export interface ImageCanvasRef {
   handleRedo: () => void;
   clearLines: () => void;
   handleExport: () => void;
+  updateImageHash: (hash: string) => void;
 }
 
 const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({ 
   imageFile, 
+  imageHash,
   onLoad,
   onControlStateChange
 }, ref) => {
@@ -45,8 +48,16 @@ const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({
     handleLineAdd,
     handleLineDrag,
     handleLineRemove,
-    clearLines
+    clearLines,
+    updateImageHash
   } = useLineManagement(canvasDimensions);
+
+  // Update imageHash when it changes externally
+  useEffect(() => {
+    if (imageHash) {
+      updateImageHash(imageHash);
+    }
+  }, [imageHash, updateImageHash]);
 
   // Mouse interactions hook
   const {
@@ -155,23 +166,23 @@ const ImageCanvas = forwardRef<ImageCanvasRef, ImageCanvasProps>(({
     handleUndo,
     handleRedo,
     clearLines,
-    handleExport
-  }), [handleUndo, handleRedo, clearLines, handleExport]);
+    handleExport,
+    updateImageHash
+  }), [handleUndo, handleRedo, clearLines, handleExport, updateImageHash]);
 
   return (
     <div className="relative flex flex-col w-full">
       <div 
         ref={containerRef}
-        className="relative w-full bg-gray-50 border rounded-lg shadow-inner"
+        className="relative w-full bg-gray-50 border rounded-lg shadow-inner overflow-auto"
       >
         <div className="flex items-center justify-center p-3">
           <canvas
             ref={canvasRef}
-            className={`rounded-lg shadow-lg ${
-              isDragging ? 'cursor-move' : 
-              hoveredLine ? 'cursor-pointer' : 
-              'cursor-crosshair'
-            }`}
+            className="shadow-lg max-w-full"
+            style={{
+              cursor: isDragging ? 'move' : hoveredLine ? 'pointer' : 'crosshair'
+            }}
             onMouseMove={handlers.onMouseMove}
             onMouseDown={handlers.onMouseDown}
             onMouseUp={handlers.onMouseUp}

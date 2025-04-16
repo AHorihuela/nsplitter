@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { SliceLines, Point, ImageDimensions } from '../utils/types';
 import { findContainingBoundaries, updateSliceLinesOnHorizontalDrag, updateSliceLinesOnVerticalDrag, updateVerticalLineBoundaries } from '../utils/lineManagement';
 import { HistoryState, createInitialHistory, addToHistory, undo, redo } from '../utils/history';
-import { saveLinesToStorage, getLinesFromStorage } from '../utils/storage';
+import { saveLinesToStorage, getLinesFromStorage, getCurrentImageHash } from '../utils/storage';
 
 interface DragState {
   type: 'horizontal' | 'vertical';
@@ -24,16 +24,36 @@ interface UseLineManagementResult {
   handleLineDrag: (type: 'horizontal' | 'vertical', index: number, point: Point) => void;
   handleLineRemove: (point: Point, threshold: number) => void;
   clearLines: () => void;
+  updateImageHash: (hash: string) => void;
 }
 
 export function useLineManagement(canvasDimensions: ImageDimensions | null): UseLineManagementResult {
+  const [imageHash, setImageHash] = useState<string | null>(() => getCurrentImageHash());
   const [history, setHistory] = useState<HistoryState>(() => {
-    const storedLines = getLinesFromStorage();
-    return createInitialHistory(storedLines || { horizontal: [], vertical: [] });
+    const currentHash = getCurrentImageHash();
+    // Only load lines if we have a current image hash
+    if (currentHash) {
+      const storedLines = getLinesFromStorage(currentHash);
+      return createInitialHistory(storedLines || { horizontal: [], vertical: [] });
+    }
+    return createInitialHistory({ horizontal: [], vertical: [] });
   });
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [hoveredLine, setHoveredLine] = useState<{ type: 'horizontal' | 'vertical', index: number } | null>(null);
   const [justFinishedDrag, setJustFinishedDrag] = useState(false);
+
+  // Update the current image hash
+  const updateImageHash = useCallback((hash: string) => {
+    setImageHash(hash);
+    // Load lines for this image if they exist
+    const storedLines = getLinesFromStorage(hash);
+    if (storedLines) {
+      setHistory(createInitialHistory(storedLines));
+    } else {
+      // If no lines exist for this image, reset to empty
+      setHistory(createInitialHistory({ horizontal: [], vertical: [] }));
+    }
+  }, []);
 
   const findNearestLine = useCallback((point: Point, threshold: number = 10, scale: number): { type: 'horizontal' | 'vertical', index: number } | null => {
     const scaledThreshold = threshold / scale;
@@ -188,9 +208,12 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
     setHistory(prev => addToHistory(prev, { horizontal: [], vertical: [] }));
   }, []);
 
+  // Save lines to storage whenever they change
   useEffect(() => {
-    saveLinesToStorage(history.present);
-  }, [history.present]);
+    if (imageHash) {
+      saveLinesToStorage(history.present, imageHash);
+    }
+  }, [history.present, imageHash]);
 
   return {
     history,
@@ -199,6 +222,7 @@ export function useLineManagement(canvasDimensions: ImageDimensions | null): Use
     handleLineAdd,
     handleLineDrag,
     handleLineRemove,
-    clearLines
+    clearLines,
+    updateImageHash
   };
 } 

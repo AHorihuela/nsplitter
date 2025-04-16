@@ -35,37 +35,27 @@ export function useCanvasDrawing({
     img.src = URL.createObjectURL(imageFile);
 
     img.onload = () => {
-      // Set a minimum width for better precision
-      const minWidth = 800;
-      const containerWidth = Math.max(minWidth, container.clientWidth - 48);
-      
+      // Use the original image dimensions (100% size)
       console.log('DEBUG: Original image dimensions:', {
         width: img.width,
         height: img.height
       });
       
+      // Set canvas to original image dimensions
       let width = img.width;
       let height = img.height;
       
-      // Calculate scale based on minimum width
-      const scale = containerWidth / width;
-      width = width * scale;
-      height = height * scale;
-
-      console.log('DEBUG: Scaled canvas dimensions:', {
-        width,
-        height,
-        scale,
-        containerWidth
-      });
-
       // Set canvas dimensions
       canvas.width = width;
       canvas.height = height;
 
-      // Draw image
+      // Draw image at its original size
       ctx.clearRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
+
+      // Make canvas responsive using CSS
+      canvas.style.maxWidth = '100%';
+      canvas.style.height = 'auto';
 
       // Draw existing slice lines
       ctx.lineWidth = 2;
