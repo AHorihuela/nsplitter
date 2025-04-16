@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   preset: 'ts-jest',
   testEnvironment: 'node',
   moduleNameMapper: {
@@ -6,6 +6,9 @@ module.exports = {
   },
   testMatch: ['**/__tests__/**/*.test.ts'],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest'
-  }
+    '^.+\\.tsx?$': ['ts-jest', {
+      useESM: true,
+    }],
+  },
+  extensionsToTreatAsEsm: ['.ts', '.tsx']
 }; 

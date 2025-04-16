@@ -87,6 +87,10 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     return nearestLine ? { type: nearestLine.type, index: nearestLine.index } : null;
   };
 
+  const findNearestLineWithThreshold = useCallback((point: Point) => {
+    return findNearestLine(point, history.present, 5);
+  }, [history.present]);
+
   // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -138,7 +142,7 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
       e.preventDefault();
       const newState = dragState.type === 'horizontal'
         ? updateSliceLinesOnHorizontalDrag(history.present, dragState.index, point.y, canvasDimensions)
-        : updateSliceLinesOnVerticalDrag(history.present, dragState.index, point.x, canvasDimensions);
+        : updateSliceLinesOnVerticalDrag(history.present, dragState.index, point.x);
       
       setHistory(prev => ({
         ...prev,
@@ -146,8 +150,12 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
       }));
     } else {
       setHoverLine(point);
-      const nearestLine = findNearestLine(point);
-      setHoveredLine(nearestLine);
+      const nearest = findNearestLineWithThreshold(point);
+      if (nearest && nearest.type && nearest.index !== null) {
+        setHoveredLine({ type: nearest.type, index: nearest.index });
+      } else {
+        setHoveredLine(null);
+      }
     }
   };
 
@@ -156,14 +164,15 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     const point = getCanvasCoordinates(e);
     if (!point) return;
 
-    const nearestLine = findNearestLine(point);
-    if (nearestLine) {
+    const nearest = findNearestLineWithThreshold(point);
+    if (nearest && nearest.type && nearest.index !== null) {
       e.preventDefault();
       setDragState({
-        ...nearestLine,
-        initialPosition: nearestLine.type === 'horizontal' 
-          ? history.present.horizontal[nearestLine.index]
-          : history.present.vertical[nearestLine.index].x
+        type: nearest.type,
+        index: nearest.index,
+        initialPosition: nearest.type === 'horizontal' 
+          ? history.present.horizontal[nearest.index]
+          : history.present.vertical[nearest.index].x
       });
     }
   };
@@ -348,12 +357,22 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
     }
   };
 
+  // Clear all lines
+  const handleClearLines = useCallback(() => {
+    setHistory(prev => addToHistory(prev, { horizontal: [], vertical: [] }));
+  }, []);
+
+  // Reset lines when image changes
+  useEffect(() => {
+    handleClearLines();
+  }, [imageFile, handleClearLines]);
+
   return (
     <div className="relative flex flex-col w-full gap-4">
       <div 
         ref={containerRef}
         className="relative w-full bg-gray-50 border rounded-lg shadow-inner overflow-auto"
-        style={{ maxHeight: '80vh' }}
+        style={{ maxHeight: '70vh' }}
       >
         <div className="flex items-center justify-center p-6">
           <canvas
@@ -373,12 +392,20 @@ const ImageCanvas: React.FC<ImageCanvasProps> = ({ imageFile, onLoad }) => {
         </div>
       </div>
       <div className="flex justify-between items-center px-4">
-        <UndoRedo
-          canUndo={history.past.length > 0}
-          canRedo={history.future.length > 0}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-        />
+        <div className="flex items-center gap-4">
+          <UndoRedo
+            canUndo={history.past.length > 0}
+            canRedo={history.future.length > 0}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+          />
+          <button
+            onClick={handleClearLines}
+            className="px-4 py-2 rounded-lg shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+          >
+            Clear Lines
+          </button>
+        </div>
         {imageFile && (
           <button
             onClick={handleExport}
