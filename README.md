@@ -149,5 +149,5 @@ This project is proprietary software developed exclusively for Fubo's internal u
 ---
 
 <div align="center">
-  <small>Developed with ❤️ by the Fubo Engineering Team</small>
+  <small>Developed with ❤️ by the Fubo Marketing Team</small>
 </div>
