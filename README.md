@@ -1,23 +1,61 @@
 # Fubo Image Slicer
 
-A web application that enables Fubo's marketing team to easily slice images for newsletters and other marketing materials.
+<div align="center">
+  <img src="/public/bg.png" alt="Fubo Image Slicer" width="600" />
+
+  <p>
+    <strong>A powerful, browser-based tool for slicing images into smaller segments for marketing materials.</strong>
+  </p>
+
+  <p>
+    <a href="#features">Features</a> •
+    <a href="#getting-started">Getting Started</a> •
+    <a href="#usage">Usage</a> •
+    <a href="#building-for-production">Deployment</a> •
+    <a href="#technologies-used">Technologies</a>
+  </p>
+  
+  <p>
+    <img src="https://img.shields.io/badge/Platform-Web-blue" alt="Platform: Web" />
+    <img src="https://img.shields.io/badge/Built%20with-React-blue" alt="Built with: React" />
+    <img src="https://img.shields.io/badge/License-Proprietary-red" alt="License: Proprietary" />
+  </p>
+</div>
 
 ## Overview
 
-Fubo Image Slicer is a client-side web application that helps streamline the workflow of creating sliced images for email newsletters. It provides an intuitive interface for uploading images, adding horizontal and vertical slice lines, and exporting the resulting sub-images as a ZIP file.
+Fubo Image Slicer streamlines the workflow for Fubo's marketing team by providing an intuitive web interface to upload, slice, and export images for email newsletters and other marketing materials. The application runs entirely in the browser, with no server-side processing required for the image manipulation.
 
 ## Features
 
-- **Image Upload**: Drag-and-drop or file picker for PNG and JPEG images
-- **Intuitive Slicing**: 
+- **🖼️ Effortless Image Upload**
+  - Drag-and-drop functionality
+  - File picker for PNG and JPEG formats
+  - Support for images up to 5MB
+
+- **✂️ Intuitive Slicing Interface**
   - Hover and click to add horizontal slice lines
   - Shift+hover and click to add vertical slice lines
-  - Double-click to remove lines
-  - Drag to reposition lines
-- **Visual Numbering**: Each slice is numbered in real-time showing the export order
-- **Export Functionality**: Export all slices as a ZIP file with numbered images
-- **Session Persistence**: Slice lines are saved to browser storage for the current session
-- **Basic Security**: Simple password protection to control access
+  - Double-click to remove any slice line
+  - Click and drag to reposition lines
+  - Real-time visual preview of slices
+
+- **🔢 Smart Slice Numbering**
+  - Automatic numbering in row-major order (top-to-bottom, left-to-right)
+  - Visual indicators showing the export order
+
+- **📦 One-Click Export**
+  - Generates all slices as separate images
+  - Packages slices into a convenient ZIP file
+  - Automatic download to your device
+
+- **💾 Session Persistence**
+  - Slice configurations are saved in browser storage
+  - Preserves your work if you refresh the page
+
+- **🔒 Basic Security**
+  - Password protection to control access
+  - Client-side validation for internal use
 
 ## Getting Started
 
@@ -57,18 +95,20 @@ yarn dev
 
 ## Usage
 
-1. **Login**: Enter the password specified in your `.env` file
-2. **Upload an Image**: Drag and drop or click to select a PNG or JPEG file
-3. **Add Slice Lines**:
-   - Move your cursor over the image to see a horizontal guide line
-   - Click to add a horizontal slice line
-   - Hold Shift and move your cursor to see a vertical guide line
-   - Click while holding Shift to add a vertical slice line
-4. **Adjust Lines**:
-   - Drag any line to reposition it
-   - Double-click a line to remove it
-5. **Export**: Click the "Export Slices" button to download a ZIP file containing all slices
-   - Slices are numbered in row-major order (top-to-bottom, left-to-right)
+### Step 1: Access the Application
+Enter the password specified in your `.env` file to access the tool.
+
+### Step 2: Upload an Image
+Drag and drop a PNG or JPEG file onto the upload area, or click to browse your files.
+
+### Step 3: Create Slices
+- **Horizontal Slices**: Move your cursor over the image and click to place a horizontal line
+- **Vertical Slices**: Hold the Shift key, move your cursor, and click to place a vertical line
+- **Remove Slices**: Double-click any line to remove it
+- **Adjust Slices**: Click and drag any line to reposition it
+
+### Step 4: Export Your Slices
+Click the "Export Slices" button to generate and download a ZIP file containing all your image slices, numbered in order.
 
 ## Building for Production
 
@@ -80,14 +120,21 @@ yarn build
 
 The built files will be in the `dist` directory, ready to be deployed to any static hosting service.
 
+### Deployment Options
+
+- **Static Hosting**: Deploy the `dist` directory to any static hosting service (Netlify, Vercel, GitHub Pages)
+- **Docker**: Use the included Dockerfile for containerized deployment
+- **Cloud Services**: Deploy to AWS S3, Google Cloud Storage, or similar services
+
 ## Technologies Used
 
-- React with TypeScript
-- Vite for fast development and optimized builds
-- HTML5 Canvas for image manipulation
-- JSZip for client-side ZIP file creation
-- TailwindCSS for styling
-- LocalStorage for session persistence
+- **Frontend Framework**: React with TypeScript
+- **Build Tool**: Vite for fast development and optimized builds
+- **Image Processing**: HTML5 Canvas for client-side manipulation
+- **Packaging**: JSZip for in-browser ZIP file creation
+- **Styling**: TailwindCSS for responsive design
+- **State Management**: React hooks and Context API
+- **Storage**: Browser LocalStorage for session persistence
 
 ## Limitations
 
@@ -97,4 +144,10 @@ The built files will be in the `dist` directory, ready to be deployed to any sta
 
 ## License
 
-This project is proprietary software for Fubo's internal use.
+This project is proprietary software developed exclusively for Fubo's internal use.
+
+---
+
+<div align="center">
+  <small>Developed with ❤️ by the Fubo Engineering Team</small>
+</div>
