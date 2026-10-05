@@ -74,6 +74,8 @@ gcloud run deploy nsplitter \
   --region us-central1
 ```
 
+The runtime stage of the `Dockerfile` runs `apk upgrade` to pick up OS security patches, so redeploying regularly picks up fixes.
+
 ## Troubleshooting
 
 If you encounter build issues:
