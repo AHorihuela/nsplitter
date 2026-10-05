@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -28,6 +28,9 @@ RUN npx vite build
 
 # Production stage
 FROM nginx:alpine
+
+# Patch Alpine OS packages even if the base image tag is stale
+RUN apk upgrade --no-cache
 
 # Copy built files from build stage to nginx
 COPY --from=build /app/dist /usr/share/nginx/html
